@@ -1,3 +1,4 @@
+/* This is the original cache.c file with LIP implementation */
 /* cache.c - cache module routines */
 
 /* SimpleScalar(TM) Tool Suite

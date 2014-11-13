@@ -1,3 +1,4 @@
+/* This is the original cache.h file with LIP implementation */
 /* cache.h - cache module interfaces */
 
 /* SimpleScalar(TM) Tool Suite

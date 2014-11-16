@@ -139,11 +139,10 @@
 /* bound sqword_t/dfloat_t to positive int */
 #define BOUND_POS(N)		((int)(MIN(MAX(0, (N)), 2147483647)))
 
+
+/* JRE: addition for BIP */
 extern unsigned int BIP_CNTR_MAX;
-//#define BIP_CNTR_MAX  16U
-//#define BIP_CNTR_MAX  32U
-//#define BIP_CNTR_MAX  64U
-//#define BIP_CNTR_MAX  128U
+
 
 /* unlink BLK from the hash table bucket chain in SET */
 static void
@@ -413,8 +412,8 @@ cache_char2policy(char c)		/* replacement policy as a char */
 {
   switch (c) {
   case 'l': return LRU;
-  case 'x': return LIP;
-  case 'b': return BIP;
+  case 'x': return LIP;		/* JRE: addition for LIP */
+  case 'b': return BIP;		/* JRE: addition for BIP */
   case 'r': return Random;
   case 'f': return FIFO;
   default: fatal("bogus replacement policy, `%c'", c);
@@ -433,8 +432,8 @@ cache_config(struct cache_t *cp,	/* cache instance */
 	  "cache: %s: %d-way, `%s' replacement policy, write-back\n",
 	  cp->name, cp->assoc,
 	  cp->policy == LRU ? "LRU"
-	  : cp->policy == LIP ? "LIP"
-	  : cp->policy == BIP ? "BIP"
+	  : cp->policy == LIP ? "LIP"			/* JRE: addition for LIP */
+	  : cp->policy == BIP ? "BIP"			/* JRE: addition for BIP */
 	  : cp->policy == Random ? "Random"
 	  : cp->policy == FIFO ? "FIFO"
 	  : (abort(), ""));
@@ -591,6 +590,7 @@ cache_access(struct cache_t *cp,	/* cache to access */
 	}
 	break;
   
+	/* JRE: addition for LIP */
 	case LIP:
 	{
 		repl = cp->sets[set].way_tail;
@@ -598,6 +598,7 @@ cache_access(struct cache_t *cp,	/* cache to access */
 	}
 	break;
   
+	/* JRE: addition for BIP */
 	case BIP:
 	{
 		/* DEBUG */
@@ -722,7 +723,7 @@ cache_access(struct cache_t *cp,	/* cache to access */
 		update_way_list(&cp->sets[set], blk, Head);
 	}
 
-		
+	/* JRE: addition for LIP */
 	/* if LIP replacement and this is not the first element of list, reorder */
 	if (blk->way_prev && cp->policy == LIP)
 	{
@@ -730,6 +731,7 @@ cache_access(struct cache_t *cp,	/* cache to access */
 		update_way_list(&cp->sets[set], blk, Head);
 	}
 		
+	/* JRE: addition for BIP */
 	/* if BIP replacement and this is not the first element of list, reorder */
 	if (blk->way_prev && cp->policy == BIP)
 	{
@@ -832,6 +834,7 @@ cache_flush(struct cache_t *cp,		/* cache instance to flush */
   int i, lat = cp->hit_latency; /* min latency to probe cache */
   struct cache_blk_t *blk;
   
+  /* JRE: DEBUG */
   printf("%s\n", "Looks like cache_flush() does get called..");
 
   /* blow away the last block to hit */
@@ -876,6 +879,7 @@ cache_flush_addr(struct cache_t *cp,	/* cache instance to flush */
   struct cache_blk_t *blk;
   int lat = cp->hit_latency; /* min latency to probe cache */
   
+  /* JRE: DEBUG */
   printf("%s\n", "Looks like cache_flush_addr() does get called..");
 
   if (cp->hsize)

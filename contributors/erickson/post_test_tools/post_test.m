@@ -1,45 +1,59 @@
 function post_test
 
     clear; close all;
-    directoryname = uigetdir('.', 'Select directory containing anagram, gcc, etc folders');
-    back=pwd;
+    directoryname = uigetdir('.', 'Select directory containing benchmark output');
+    back = pwd;
     cd(directoryname);
     
-    % selected benchmark directory, analyze all programs
-    dir_list = ['anagram'; ...
+    % Analyze all benchmark programs
+    programs = ['anagram'; ...
                 'gcc    '; ...
                 'go     '; ...
                 'gzip   '];
-    dirs     = size(dir_list,1);
+    
+    ANALYZE_L1       = false;
+    ANALYZE_L2       = true;
 
-    SCALE_TO_MB = 2^-20;    % 1/1,048,576 bytes
-    SCALE_TO_KB = 2^-10;    % 1/1,048,576 bytes
-    SIZE_32KB   = 32; 
-    SIZE_256KB  = 256;
-    SCALE_TO_PERCENT = 100; % for miss rates
+    SCALE_TO_MB      = 2^-20;   % 1/1,048,576 bytes
+    SCALE_TO_KB      = 2^-10;   % 1/1,024 bytes
+    SIZE_32KB        = 32;      % used for plots
+    SIZE_256KB       = 256;     % used for plots
+    SCALE_TO_PERCENT = 100;     % used for miss rates
 
-    for dir_idx = 1:dirs
+     for prog_idx = 1:size(programs,1)
+        
+        program   = programs(prog_idx,:); program(program==' ') = '';
+        file_list = ls([program '.simout.*']);
+        clear Data_*
 
-        cd(dir_list(dir_idx,:))
-        file_list = ls('*.simout.*');
-
-        [fullpath, program]    = (fileparts(pwd));
-        [pathpath, benchmarks] = (fileparts(fullpath));
+        [fullpath, foo]   = (fileparts(pwd));
+        [foo, benchmarks] = (fileparts(fullpath));
         for idx = 1:size(file_list,1)
 
             fid = fopen(file_list(idx,:));
             filetext = fscanf(fid,'%s');
             fclose(fid);
+            fstop = length(filetext)-15;  % arbitrary EOF 
+            
+            % Skip to statistics
+            str1 = '#-config';
+            for jdx = 1:fstop
+                str2 = filetext(jdx:jdx+length(str1)-1);
+                if strcmp(str1,str2)
+                    jdx_prev = jdx;
+                    break;
+                end
+            end
 
-            for jdx = 1:(length(filetext)-15)
-
-                str1 = 'dl1:';
+            % Look for cache config string: "-cache:dl1 dl1:a:b:c:d"
+            str1 = '-cache:dl1dl1:';
+            for jdx = jdx_prev:fstop
                 str2 = filetext(jdx:jdx+length(str1)-1);
 
                 if strcmp(str1,str2)
                     kdx1 = jdx+length(str1);
                     kdx2 = jdx+length(str1);
-                    while ~strcmp(filetext(kdx2),'#')
+                    while (~strcmp(filetext(kdx2),'#'))
                         kdx2=kdx2+1;
                     end
                     kdx2=kdx2-1;
@@ -53,9 +67,14 @@ function post_test
                     repl_l1 = b(2:end);
 
                     cache_size_l1 = nsets_l1 * bsize_l1 * alloc_l1 * SCALE_TO_KB;
+                    jdx_prev = jdx;
+                    break;
                 end
-
-                str1 = 'ul2:';
+            end
+                
+            % Look for cache config string: "-cache:dl2 ul1:a:b:c:d"
+            str1 = '-cache:dl2ul2:';
+            for jdx = jdx_prev:fstop    
                 str2 = filetext(jdx:jdx+length(str1)-1);
 
                 if strcmp(str1,str2)
@@ -75,9 +94,14 @@ function post_test
                     repl_l2 = b(2:end);
 
                     cache_size_l2 = nsets_l2 * bsize_l2 * alloc_l2 * SCALE_TO_KB;
+                	jdx_prev = jdx;
+                    break;
                 end
+            end
 
-                str1 = 'dl1.miss_rate';
+            % Look for string: "dl1.miss_rate"
+            str1 = 'dl1.miss_rate';
+            for jdx = jdx_prev:fstop
                 str2 = filetext(jdx:jdx+length(str1)-1);
 
                 if strcmp(str1,str2)
@@ -88,9 +112,14 @@ function post_test
                     end
                     kdx2=kdx2-1;
                     miss_rate_l1 = str2double(filetext(kdx1:kdx2)) * SCALE_TO_PERCENT;
+                	jdx_prev = jdx;
+                    break;
                 end
+            end
 
-                str1 = 'ul2.miss_rate';
+            % Look for string: "dl1.miss_rate"
+            str1 = 'ul2.miss_rate';
+            for jdx = jdx_prev:fstop
                 str2 = filetext(jdx:jdx+length(str1)-1);
 
                 if strcmp(str1,str2)
@@ -101,31 +130,37 @@ function post_test
                     end
                     kdx2=kdx2-1;
                     miss_rate_l2 = str2double(filetext(kdx1:kdx2)) * SCALE_TO_PERCENT;
+                    jdx_prev = jdx;
+                    break;
                 end
             end
 
+            
+            % Pack data from simout file into array for plots and csvs
             a = strfind(file_list(idx,:), '.T');
-            [b c] = strtok(file_list(idx,a:end), '_');
-            T_idx = str2double(b(3:end));
+            [b c] = strtok(file_list(idx,a:end), '.');
+            T_idx = str2double(b(2:end));
             
             Data_Common = [T_idx cache_size_l1 nsets_l1 bsize_l1 alloc_l1 ...
                                  cache_size_l2 nsets_l2 bsize_l2 alloc_l2];
 
-            if strcmp(repl_l1,'l')
+            if strcmp(repl_l2,'l')
                 Data_LRU(T_idx,:) = [Data_Common miss_rate_l1 miss_rate_l2];
-            elseif strcmp(repl_l1,'x')
+            elseif strcmp(repl_l2,'a')
+                Data_LRFU(T_idx,:) = [Data_Common miss_rate_l1 miss_rate_l2];
+            elseif strcmp(repl_l2,'x')
                 Data_LIP(T_idx,:) = [Data_Common miss_rate_l1 miss_rate_l2];
-            elseif strcmp(repl_l1,'b')
+            elseif strcmp(repl_l2,'b')
                 Data_BIP(T_idx,:) = [Data_Common miss_rate_l1 miss_rate_l2];
             end
         end
         
         
-        %% assemble data to plot and write to csv
+        % Generate plots and csvs
         L1_plot_str = '';
         L2_plot_str = '';
         leg_str = '';
-        csv_out = [fullpath '\' program '.' benchmarks '.csv'];
+        csv_out = ['analysis.' program '.csv'];
         csv_hdr = 'Test_Case, DL1_cache_size, DL1_nsets, DL1_bsize, DL1_alloc, DL2_cache_size, DL2_nsets, DL2_bsize, DL2_alloc';
         
         repl_pols = ['LRU '; 'FIFO'; 'RAND'; 'LIP '; 'BIP '; 'DIP '; 'LRFU'; 'GARP'];
@@ -139,7 +174,7 @@ function post_test
 
                 % write data to csv
                 fid = fopen(csv_out,'a');
-                fprintf(fid, '%s\n', [csv_hdr ',',pol(6:end),' DL1_miss_rate (%),',pol(6:end),' LRU DL2_miss_rate (%)']);
+                fprintf(fid, '%s\n', [csv_hdr ',',pol(6:end),' DL1_miss_rate (%),',pol(6:end),' DL2_miss_rate (%)']);
                 fclose(fid);
                 eval(['dlmwrite(csv_out,', pol, ',''-append'')']);
             end
@@ -149,29 +184,34 @@ function post_test
         % generate plots of L1 and L2 miss rates versus cache size
         pow2s = [16 32 64 128 256 512 1024 2014 4096];
         
-        L1_plot_str = ['figure;hold all;plot(', L1_plot_str(1:end-2), ')'];
-        eval(L1_plot_str);
-        title([program ': L1 Cache Miss Rate vs Cache Size']); grid on; 
-        xlabel('L1 Cache Size (KB)'); ylabel('L1 Miss Rate (%)'); 
-        ys = ylim; ymax = ys(2);
-        xs = xlim; a = pow2s >= xs(1); b = pow2s <= xs(2); xticks = pow2s(a&b);
-        plot([SIZE_32KB,SIZE_32KB], [0,ymax], 'k--'); ylim([0,ymax]);
-        set(gca,'XTick', xticks);
-        eval(['legend(' leg_str '''32KB'')'])
-        hold off;
-
-        L2_plot_str = ['figure;hold all;plot(', L2_plot_str(1:end-2), ')'];
-        eval(L2_plot_str);
-        title([program ': L2 Cache Miss Rate vs Cache Size']); grid on; 
-        xlabel('L2 Cache Size (KB)'); ylabel('L2 Miss Rate (%)'); 
-        ys = ylim; ymax = ys(2);
-        xs = xlim; a = pow2s >= xs(1); b = pow2s <= xs(2); xticks = pow2s(a&b);
-        plot([SIZE_256KB,SIZE_256KB], [0,ymax], 'k--'); ylim([0,ymax]);
-        set(gca,'XTick', xticks);
-        eval(['legend(' leg_str '''256KB'')'])
-        hold off;
+        if ANALYZE_L1
+            L1_plot_str = ['figure;hold all;plot(', L1_plot_str(1:end-2), ')'];
+            eval(L1_plot_str);
+            title([program ': L1 Cache Miss Rate vs Cache Size']); grid on; 
+            xlabel('L1 Cache Size (KB)'); ylabel('L1 Miss Rate (%)'); 
+            ys = ylim; ymax = ys(2);
+            xs = xlim; a = pow2s >= xs(1); b = pow2s <= xs(2); xticks = pow2s(a&b);
+            plot([SIZE_32KB,SIZE_32KB], [0,ymax], 'k--'); ylim([0,ymax]);
+            set(gca,'XTick', xticks);
+            eval(['legend(' leg_str '''32KB'')'])
+            hold off;
+        end
         
+        if ANALYZE_L2
+            L2_plot_str = ['figure;hold all;plot(', L2_plot_str(1:end-2), ')'];
+            eval(L2_plot_str);
+            title([program ': L2 Cache Miss Rate vs Cache Size']); grid on; 
+            xlabel('L2 Cache Size (KB)'); ylabel('L2 Miss Rate (%)'); 
+            ys = ylim; ymax = ys(2);
+            xs = xlim; a = pow2s >= xs(1); b = pow2s <= xs(2); xticks = pow2s(a&b);
+            plot([SIZE_256KB,SIZE_256KB], [0,ymax], 'k--'); ylim([0,ymax]);
+            set(gca,'XTick', xticks);
+            eval(['legend(' leg_str '''256KB'')'])
+            hold off;
+        end
         
-        cd ..
+        % Done w benchmark program
     end
+    % Done w all benchmark programs
+    cd(back);
 end

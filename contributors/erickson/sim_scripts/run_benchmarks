@@ -1,0 +1,138 @@
+#!/bin/bash
+
+##############################################################################################
+# Commands:
+#   -cache:dl1 <config> and -cache:dl2 <config>
+#       Where <config> is <name>:<nsets>:<bsize>:<assoc>:<repl>
+#   Looks like the defaults for these are:
+#       -cache:dl1       dl1:128:32:4:l  (16KB)  # l1 data cache config, i.e., {<config>|none}
+#       -cache:dl2       ul2:1024:64:4:l (256KB) # l2 data cache config, i.e., {<config>|none}
+##############################################################################################
+GC_TEST="RUN"
+AN_TEST="RUN"
+GZ_TEST="RUN"
+GO_TEST="RUN"
+
+echo -e "\n\n-------------------------------------------------------------------------"
+echo -e "Begin SimpleScalar benchmark simulations for Project - LRFU\n"
+
+
+# Test Suite Constants
+max_inst="-max:inst 1000000000"
+L1_assoc="2"
+L2_assoc="16"
+out_dir="benchout.$(date +"%Y-%m-%d.%H-%M-%S")"
+
+mkdir -p benchmarks/$out_dir
+mkdir -p benchmarks/$out_dir/prog_out_dir
+
+sim_path="$(readlink -e ../../simplesim-3.0/)"
+apps_path="$(readlink -e ./apps/)"
+bench_path="$(readlink -e ./benchmarks/$out_dir)"
+
+echo "  Using SimpleScalar sim-outorder located in: $sim_path"
+echo "  Using apps binaries located in:             $apps_path"
+echo "  Recording simulation output to:             $bench_path"
+
+
+for repl in "l" "a"; do
+    
+    if [ "$repl" = "l" ]; then
+        repl_str="LRU"
+    elif [ "$repl" = "a" ]; then
+        repl_str="LRFU"
+    fi
+
+    #for input_vars in "test_case L1_nsets L1_bsize L2_nets L2_bsize" "etc"; do
+    for input_vars in "1 256 32 256 32" "2 128 64 256 64" "3 64 128 256 128" "4 32 256 256 256"; do
+        set -- $input_vars
+
+        # Benchmark Variables
+        test_case=$1
+        L1_nsets=$2
+        L1_bsize=$3
+        L2_nsets=$4
+        L2_bsize=$5
+        
+        test_description="T$test_case, Replacement policy = $repl_str"
+        test_desc="T$test_case"".$repl_str"
+        
+        # Benchmark Constants        
+        sim_out="simout.$test_desc"
+        prog_out="progout.$test_desc"
+        cach_cfg="-cache:dl1 dl1:$L1_nsets:$L1_bsize:$L1_assoc:$repl -cache:dl2 ul2:$L2_nsets:$L2_bsize:$L2_assoc:$repl"
+        base_cmd="$sim_path/sim-outorder"
+
+        echo -e "\n  Test Description: $test_description"
+
+        # Begin Anagram ----------------------------
+        if [ "$AN_TEST" = "RUN" ]; then
+            exe="anagram"
+            cd apps/$exe
+            out_cmd="-redir:sim $bench_path/$exe.$sim_out -redir:prog $bench_path/prog_out_dir/$exe.$prog_out"
+
+            echo "    $exe..."
+            echo "      Start time: $(date)"
+            echo "        $base_cmd $out_cmd $cach_cfg $exe words < anagram.in"
+            $base_cmd $out_cmd $cach_cfg $exe words < anagram.in
+            
+            echo -e "      End time: $(date)\n"
+            cd -
+        fi
+        # End Anagram --------------------------------
+        
+        
+        # Begin GCC --------------------------------
+        if [ "$GC_TEST" = "RUN" ]; then
+            exe="gcc"
+            cd apps/$exe
+            out_cmd="-redir:sim $bench_path/$exe.$sim_out -redir:prog $bench_path/prog_out_dir/$exe.$prog_out"
+            
+            echo "    gcc..."
+            echo "      Start time: $(date)"
+            echo "        $base_cmd $out_cmd $cach_cfg $max_inst $exe -O 166.i"
+            $base_cmd $out_cmd $cach_cfg $max_inst $exe -O 166.i
+            
+            echo -e "      End time: $(date)\n"
+            cd -
+        fi
+        # End GCC --------------------------------
+
+
+        # Begin Gzip ----------------------------
+        if [ "$GZ_TEST" = "RUN" ]; then
+            exe="gzip"
+            cd apps/$exe
+            out_cmd="-redir:sim $bench_path/$exe.$sim_out -redir:prog $bench_path/prog_out_dir/$exe.$prog_out"
+
+            echo "    $exe..."
+            echo "      Start time: $(date)"
+            echo "        $base_cmd $out_cmd $cach_cfg $max_inst $exe input.graphic"
+            $base_cmd $out_cmd $cach_cfg $max_inst $exe input.graphic
+            
+            echo -e "      End time: $(date)\n"
+            cd -
+        fi
+        # End Gzip --------------------------------
+
+
+        # Begin Go ----------------------------
+        if [ "$GO_TEST" = "RUN" ]; then
+            exe="go"
+            cd apps/$exe
+            out_cmd="-redir:sim $bench_path/$exe.$sim_out -redir:prog $bench_path/prog_out_dir/$exe.$prog_out"
+
+            echo "    $exe..."
+            echo "      Start time: $(date)"
+            echo "        $base_cmd $out_cmd $cach_cfg $exe 50 9 2stone9.in"
+            $base_cmd $out_cmd $cach_cfg $exe 50 9 2stone9.in
+            
+            echo -e "      End time: $(date)\n"
+            cd -
+        fi
+        # End Go --------------------------------
+    done
+done
+
+echo -e "\nEnd SimpleScalar benchmark simulations for Project - LRFU"
+echo -e "-------------------------------------------------------------------------\n"

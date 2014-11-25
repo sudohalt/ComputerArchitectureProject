@@ -1,3 +1,20 @@
+# Author: Umayah Abdennabi
+#
+# To use you must have paramiko installed, to install it:
+# run "pip install paramiko" from terminal.
+#
+# The program can be used as following:
+#
+#   python runOnRemote 'USERNAME' 'PASSWORD'
+#
+# Example:
+#   
+#   python runOnRemote 'doe001' 'password1234'
+#
+# (Note: The single quote ARE necessary) This will run all the 
+# commands listed in tasks on any of the computers listed in machines
+#
+
 import sys 
 import paramiko
 import random

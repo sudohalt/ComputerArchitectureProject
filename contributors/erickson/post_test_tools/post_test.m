@@ -13,11 +13,13 @@ function post_test
     
     ANALYZE_L1       = false;
     ANALYZE_L2       = true;
+    SAVE_FIGS        = true;
 
     SCALE_TO_MB      = 2^-20;   % 1/1,048,576 bytes
     SCALE_TO_KB      = 2^-10;   % 1/1,024 bytes
     SIZE_32KB        = 32;      % used for plots
     SIZE_256KB       = 256;     % used for plots
+    SIZE_1024KB      = 1024;    % used for plots
     SCALE_TO_PERCENT = 100;     % used for miss rates
 
      for prog_idx = 1:size(programs,1)
@@ -182,7 +184,7 @@ function post_test
                 
         
         % generate plots of L1 and L2 miss rates versus cache size
-        pow2s = [16 32 64 128 256 512 1024 2014 4096];
+        pow2s = [16 32 64 128 256 512 1024 2048 4096];
         
         if ANALYZE_L1
             L1_plot_str = ['figure;hold all;plot(', L1_plot_str(1:end-2), ')'];
@@ -190,9 +192,10 @@ function post_test
             title([program ': L1 Cache Miss Rate vs Cache Size']); grid on; 
             xlabel('L1 Cache Size (KB)'); ylabel('L1 Miss Rate (%)'); 
             ys = ylim; ymax = ys(2);
-            xs = xlim; a = pow2s >= xs(1); b = pow2s <= xs(2); xticks = pow2s(a&b);
+            h = findobj(gca,'Type','line'); xs=get(h,'Xdata');
+            a = pow2s >= min(xs); b = pow2s <= max(xs); xticks = pow2s(a&b);
             plot([SIZE_32KB,SIZE_32KB], [0,ymax], 'k--'); ylim([0,ymax]);
-            set(gca,'XTick', xticks);
+            set(gca,'XTick', xticks); xlim([min(xs) max(xs)]);
             eval(['legend(' leg_str '''32KB'')'])
             hold off;
         end
@@ -203,15 +206,24 @@ function post_test
             title([program ': L2 Cache Miss Rate vs Cache Size']); grid on; 
             xlabel('L2 Cache Size (KB)'); ylabel('L2 Miss Rate (%)'); 
             ys = ylim; ymax = ys(2);
-            xs = xlim; a = pow2s >= xs(1); b = pow2s <= xs(2); xticks = pow2s(a&b);
-            plot([SIZE_256KB,SIZE_256KB], [0,ymax], 'k--'); ylim([0,ymax]);
-            set(gca,'XTick', xticks);
-            eval(['legend(' leg_str '''256KB'')'])
+            h = findobj(gca,'Type','line'); xs=get(h,'Xdata');
+            a = pow2s >= min(xs); b = pow2s <= max(xs); xticks = pow2s(a&b);
+            plot([SIZE_1024KB,SIZE_1024KB], [0,ymax], 'k--'); ylim([0,ymax]);
+            set(gca,'XTick', xticks); xlim([min(xs) max(xs)]);
+            eval(['legend(' leg_str '''1024KB'')'])
             hold off;
         end
         
         % Done w benchmark program
     end
     % Done w all benchmark programs
+    
+    if SAVE_FIGS
+        if ANALYZE_L1 && ANALYZE_L2
+            hgsave([8 7 6 5 4 3 2 1], 'analysis_figs');
+        else
+            hgsave([4 3 2 1], 'analysis_figs');
+        end
+    end
     cd(back);
 end

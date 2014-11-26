@@ -19,6 +19,7 @@ echo -e "Begin SimpleScalar benchmark simulations for Project - LRFU\n"
 
 # Test Suite Constants
 max_inst="-max:inst 1000000000"
+#max_inst="-max:inst 100000"
 L1_assoc="2"
 L2_assoc="16"
 out_dir="benchout.$(date +"%Y-%m-%d.%H-%M-%S")"
@@ -35,7 +36,8 @@ echo "  Using apps binaries located in:             $apps_path"
 echo "  Recording simulation output to:             $bench_path"
 
 
-for repl in "l" "a"; do
+#for repl in "l" "a"; do
+for repl in "a"; do
     
     if [ "$repl" = "l" ]; then
         repl_str="LRU"
@@ -44,7 +46,8 @@ for repl in "l" "a"; do
     fi
 
     #for input_vars in "test_case L1_nsets L1_bsize L2_nets L2_bsize" "etc"; do
-    for input_vars in "1 256 32 256 32" "2 128 64 256 64" "3 64 128 256 128" "4 32 256 256 256"; do
+    for input_vars in "1 256 32 256 32" "2 128 64 256 64" "3 64 128 256 128" "4 32 256 256 256" "5 16 512 256 512"; do
+    #for input_vars in "5 16 512 256 512"; do
         set -- $input_vars
 
         # Benchmark Variables

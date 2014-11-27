@@ -37,7 +37,7 @@ function post_test
             fclose(fid);
             fstop = length(filetext)-15;  % arbitrary EOF 
             
-            % Skip to statistics
+            % Skip to simulation configuration
             str1 = '#-config';
             for jdx = 1:fstop
                 str2 = filetext(jdx:jdx+length(str1)-1);
@@ -193,9 +193,19 @@ function post_test
             xlabel('L1 Cache Size (KB)'); ylabel('L1 Miss Rate (%)'); 
             ys = ylim; ymax = ys(2);
             h = findobj(gca,'Type','line'); xs=get(h,'Xdata');
-            a = pow2s >= min(xs); b = pow2s <= max(xs); xticks = pow2s(a&b);
+            
+            % in case more than one data set on plot
+            min_xs = inf; max_xs = 0;
+            if (iscell(xs))
+                for ndx = 1:size(xs,1)
+                    min_xs = min(min(xs{ndx}), min_xs);
+                    max_xs = max(max(xs{ndx}), max_xs);
+                end
+            else min_xs = min(xs); max_xs = max(xs); end
+            
+            a = pow2s >= min_xs; b = pow2s <= max_xs; xticks = pow2s(a&b);
             plot([SIZE_32KB,SIZE_32KB], [0,ymax], 'k--'); ylim([0,ymax]);
-            set(gca,'XTick', xticks); xlim([min(xs) max(xs)]);
+            set(gca,'XTick', xticks); xlim([min_xs max_xs]);
             eval(['legend(' leg_str '''32KB'')'])
             hold off;
         end
@@ -207,9 +217,19 @@ function post_test
             xlabel('L2 Cache Size (KB)'); ylabel('L2 Miss Rate (%)'); 
             ys = ylim; ymax = ys(2);
             h = findobj(gca,'Type','line'); xs=get(h,'Xdata');
-            a = pow2s >= min(xs); b = pow2s <= max(xs); xticks = pow2s(a&b);
+            
+            % in case more than one data set on plot
+            min_xs = inf; max_xs = 0;
+            if (iscell(xs))
+                for ndx = 1:size(xs,1)
+                    min_xs = min(min(xs{ndx}), min_xs);
+                    max_xs = max(max(xs{ndx}), max_xs);
+                end
+            else min_xs = min(xs); max_xs = max(xs); end
+            
+            a = pow2s >= min_xs; b = pow2s <= max_xs; xticks = pow2s(a&b);
             plot([SIZE_1024KB,SIZE_1024KB], [0,ymax], 'k--'); ylim([0,ymax]);
-            set(gca,'XTick', xticks); xlim([min(xs) max(xs)]);
+            set(gca,'XTick', xticks); xlim([min_xs max_xs]);
             eval(['legend(' leg_str '''1024KB'')'])
             hold off;
         end

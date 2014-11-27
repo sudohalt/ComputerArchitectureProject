@@ -207,14 +207,13 @@ update_way_list(struct cache_set_t *set,	/* set contained way chain */
 		{
 			/* only one entry in list (direct-mapped), no action */
 			assert(set->way_head == blk && set->way_tail == blk);
-			/* Head/Tail order already */
 			return;
 		}
 		/* else, more than one element in the list */
 		//      ( blk->way_prev == NULL )
 		else if (!blk->way_prev)
 		{
-			/* blk is currenty the Head */
+			/* blk is current the Head */
 			assert(set->way_head == blk && set->way_tail != blk);
 			if (where == Head)
 			{
@@ -229,7 +228,7 @@ update_way_list(struct cache_set_t *set,	/* set contained way chain */
 		/*      ( blk->way_next == NULL ) */
 		else if (!blk->way_next)
 		{
-			/* blk is currently the Tail */
+			/* blk is current the Tail */
 			assert(set->way_head != blk && set->way_tail == blk);
 			if (where == Tail)
 			{
@@ -291,7 +290,7 @@ restore_way_list(struct cache_t     *cp, 	/* pointer to cache structure */
 		else if ( blk->way_prev == NULL )
 		{
 			/* blk is current Head
-				Not currenty a use case, nothing to do at this time */
+				Not currently a use case, nothing to do at this time */
 			assert(set->way_head == blk);
 			return;
 		}
@@ -317,7 +316,7 @@ restore_way_list(struct cache_t     *cp, 	/* pointer to cache structure */
 	/* Next action is to promote blk from its current location in list to insert_here
 	 
 		At this point insert_here could be pointing to:
-			- the same loction as blk, in which case do nothing
+			- the same location as blk, in which case do nothing
 			- the Tail, in which case lets be lazy and call update_way_list(x,y,Tail)
 			- the Head, in which case lets be lazy and call update_way_list(x,y,Head)
 			- middle of list, in which case break links and insert blk  */
@@ -344,28 +343,17 @@ restore_way_list(struct cache_t     *cp, 	/* pointer to cache structure */
 		{
 			/* Insert blk into middle of list */
 			assert( (set->way_head != insert_here) && (set->way_tail !=  insert_here) );
-			
-			///* FORNOW: assume that blk is at Tail */
-			//blk->way_prev->way_next = NULL;			// update way_next of neighbor on Head side of blk to point to NULL
-			//set->way_tail = blk->way_prev;			// updates Set's Tail to be blk's old neighbor
-			
+
 			/* Assume blocks are only promoted when restore function is called (and not demoted)
-				should be a fair assumption since first action above only travered from Tail to Head comparing CRF's */
-			blk->way_prev->way_next = blk->way_next;	// udpate way_next of blk's neighbor on Head side to point to blk's neighbor on Tail side
+				should be a fair assumption since first action above only traversed from Tail to Head comparing CRF's */
+			blk->way_prev->way_next = blk->way_next;	// update way_next of blk's neighbor on Head side to point to blk's neighbor on Tail side
 			blk->way_next->way_prev = blk->way_prev;	// update way_prev of blk's neighbor on Tail side to point to blk's neighbor on Head side
 			
 			blk->way_next = insert_here; 				// update blk's way_next to point to insert_here
 			blk->way_prev = insert_here->way_prev;		// update blk's way_prev to point to insert_here's way_prev
 			
-			blk->way_prev->way_next = blk;				// udpate way_next of blk's new neighbor on Head side to point to blk
-			blk->way_next->way_prev = blk;				// udpate way_prev of blk's new neighbor on Tail side to point to blk
-			
-// 			/* link blk to location in list pointed to by insert_here */
-// 			blk->way_next = insert_here->way_next;	// update blk's way_next to point to insert_here's way_next
-// 			blk->way_prev = insert_here;			// update blk's way_prev to insert_here
-// 			
-// 			insert_here->way_next 	= blk;			// update insert_here's way_next to point to blk
-// 			blk->way_next->way_prev = blk;			// udpate insert_here's old neighbor to point to blk
+			blk->way_prev->way_next = blk;				// update way_next of blk's new neighbor on Head side to point to blk
+			blk->way_next->way_prev = blk;				// update way_prev of blk's new neighbor on Tail side to point to blk
 		}
 		
 	return;
@@ -430,7 +418,7 @@ cache_create(char *name,		/* name of the cache */
   cp->t_current = 0U;	/* initialize current time to zero */
   cp->lambda = 1.0;		/* FORNOW: hard code lambda to 1 so that LRFU degenerates to LRU */
   //cp->lambda = 0.0;	/* FORNOW: hard code lambda to 0 so that LRFU degenerates to LFU */
-  //cp->lambda = 0.0;	/* FORNOW: hard code lambda ... consider allows lambda as test input eventually */
+  //cp->lambda = 0.0;	/* EVENTUALLY: consider allowing lambda as test input to sim command */
 
   /* miss/replacement functions */
   cp->blk_access_fn = blk_access_fn;
@@ -644,7 +632,7 @@ cache_access(	struct cache_t *cp,		/* cache to access */
 	int lat = 0;
 
 	/* JRE addition for LRFU - debugging purposes only */
-	static unsigned int debug_cntr = 0U;
+	//static unsigned int debug_cntr = 0U;
 	
 	/* JRE addition for LRFU */
 	cp->t_current++;	/* increment current time for each cache access 
@@ -731,7 +719,7 @@ cache_access(	struct cache_t *cp,		/* cache to access */
 			
 			
 			/* Select block to be replaced, 
-			 	per LRFU maintanance, the tail should be the block with the lowest CRF */
+			 	per LRFU maintenance, the tail should be the block with the lowest CRF */
 			repl = cp->sets[set].way_tail;
 			
 			/* At this point the new block is destined for the tail

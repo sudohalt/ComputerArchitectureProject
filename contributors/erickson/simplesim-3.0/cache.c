@@ -47,7 +47,7 @@
  * 
  * Copyright (C) 1994-2003 by Todd M. Austin, Ph.D. and SimpleScalar, LLC.
  */
-
+#include <math.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -140,8 +140,9 @@
 #define BOUND_POS(N)		((int)(MIN(MAX(0, (N)), 2147483647)))
 
 
-/* JRE: addition for BIP */
-extern unsigned int BIP_CNTR_MAX;
+/* JRE addition for LRFU */
+#define LRFU_P 	2
+#define LRFU_WEIGHTING_FUNCTION(x) 		pow( (1/LRFU_P), (cp->lambda * (double)(x)) )
 
 
 /* unlink BLK from the hash table bucket chain in SET */
@@ -199,66 +200,175 @@ update_way_list(struct cache_set_t *set,	/* set contained way chain */
 				struct cache_blk_t *blk,	/* block to insert */
 				enum list_loc_t where)		/* insert location */
 {
-	/* unlink entry from the way list */
-	if (!blk->way_prev && !blk->way_next)
-	{
-		/* only one entry in list (direct-mapped), no action */
-		assert(set->way_head == blk && set->way_tail == blk);
-		/* Head/Tail order already */
-		return;
-	}
-	/* else, more than one element in the list */
-	else if (!blk->way_prev)
-	{
-		assert(set->way_head == blk && set->way_tail != blk);
+	/* First action is to unlink blk from the way list */
+	
+		// ( (blk->way_prev == NULL) && (blk->way_next == NULL) )
+		if ( !blk->way_prev          && !blk->way_next)
+		{
+			/* only one entry in list (direct-mapped), no action */
+			assert(set->way_head == blk && set->way_tail == blk);
+			/* Head/Tail order already */
+			return;
+		}
+		/* else, more than one element in the list */
+		//      ( blk->way_prev == NULL )
+		else if (!blk->way_prev)
+		{
+			/* blk is currenty the Head */
+			assert(set->way_head == blk && set->way_tail != blk);
+			if (where == Head)
+			{
+				/* already there */
+				return;
+			}
+			
+			/* blk was the Head and now we're moving it to be the Tail */
+			set->way_head = blk->way_next;	// update Set's Head to be blk's way_next
+			blk->way_next->way_prev = NULL; // update new Heads way_prev to point to NULL
+		}
+		/*      ( blk->way_next == NULL ) */
+		else if (!blk->way_next)
+		{
+			/* blk is currently the Tail */
+			assert(set->way_head != blk && set->way_tail == blk);
+			if (where == Tail)
+			{
+				/* already there */
+				return;
+			}
+			
+			/* blk was the Tail and now we're moving it to be the Head */
+			set->way_tail = blk->way_prev;	// update Set's Tail to be blk's way_prev
+			blk->way_prev->way_next = NULL; // update new Tails way_next to point to NULL
+		}
+		else
+		{
+			/* blk is currently in middle of list (and not front or end of list) */
+			assert(set->way_head != blk && set->way_tail != blk);
+			blk->way_prev->way_next = blk->way_next;	// update way_next of neighbor on Head side of blk to point to neighbor on Tail side of blk
+			blk->way_next->way_prev = blk->way_prev;	// update way_prev of neighbor on Tail side of blk to point to neighbor on Head side of blk
+		}
+
+	
+	/* Next action is to link blk back into the appropriate location in list */
+	
 		if (where == Head)
 		{
-			/* already there */
-			return;
+			/* link blk to the head of the way list */
+			blk->way_next = set->way_head;	// update blk's way_next to point to old Set Head
+			blk->way_prev = NULL;			// update blk's way_prev to NULL
+			set->way_head->way_prev = blk;	// update old Head's way_prev to point to blk
+			set->way_head = blk;			// update Set's Head to be blk
 		}
-		/* else, move to tail */
-		set->way_head = blk->way_next;
-		blk->way_next->way_prev = NULL;
-	}
-	else if (!blk->way_next)
-	{
-		/* end of list (and not front of list) */
-		assert(set->way_head != blk && set->way_tail == blk);
-		if (where == Tail)
+		else if (where == Tail)
 		{
-			/* already there */
+			/* link blk to the tail of the way list */
+			blk->way_prev = set->way_tail;	// hook up blk's way_prev to old tail
+			blk->way_next = NULL;			// update blk's way_next to be NULL 
+			set->way_tail->way_next = blk;	// update old Tail's way_next to point to blk
+			set->way_tail = blk;			// updates Set's Tail to be blk
+		}
+		else
+			panic("bogus WHERE designator");
+}
+
+
+
+/* insert blk into the ordered way chain in set based on relative CRF values */
+static void
+restore_way_list(struct cache_t     *cp, 	/* pointer to cache structure */
+				 struct cache_set_t *set,	/* set contained way chain */
+				 struct cache_blk_t *blk)	/* block to restore */
+{
+	/* First action is to determine where blk should be inserted into Set */
+		if ( (blk->way_prev == NULL) && (blk->way_next == NULL) )
+		{
+			/* only one entry in list (direct-mapped), no action */
+			assert(set->way_head == blk && set->way_tail == blk);
 			return;
 		}
-		set->way_tail = blk->way_prev;
-		blk->way_prev->way_next = NULL;
-	}
-	else
-	{
-		/* middle of list (and not front or end of list) */
-		assert(set->way_head != blk && set->way_tail != blk);
-		blk->way_prev->way_next = blk->way_next;
-		blk->way_next->way_prev = blk->way_prev;
-	}
-
-	/* link BLK back into the list */
-	if (where == Head)
-	{
-		/* link to the head of the way list */
-		blk->way_next = set->way_head;
-		blk->way_prev = NULL;
-		set->way_head->way_prev = blk;
-		set->way_head = blk;
-	}
-	else if (where == Tail)
-	{
-		/* link to the tail of the way list */
-		blk->way_prev = set->way_tail;
-		blk->way_next = NULL;
-		set->way_tail->way_next = blk;
-		set->way_tail = blk;
-	}
-	else
-		panic("bogus WHERE designator");
+		/* block can be Head, Tail, or body */
+		else if ( blk->way_prev == NULL )
+		{
+			/* blk is current Head
+				Not currenty a use case, nothing to do at this time */
+			assert(set->way_head == blk);
+			return;
+		}
+		
+		/* blk can be Tail or body, we'll treat it the same either way 
+			Starting at nearest neighbor on Head side, traverse list towards Head comparing CRF's */
+		assert(set->way_head != blk);
+		struct cache_blk_t *insert_here = blk->way_prev;
+		while ( insert_here != NULL )
+		{
+			if ( (LRFU_WEIGHTING_FUNCTION(cp->t_current - blk->lrfu.t_last) 		* blk->lrfu.crf_last		) <  
+			     (LRFU_WEIGHTING_FUNCTION(cp->t_current - insert_here->lrfu.t_last) * insert_here->lrfu.crf_last) )
+			{
+				/* Set insertion pointer to point back to last block in list */
+				insert_here = insert_here->way_next;
+				break;
+			}
+			/* update insertion pointer to point to next block in list */
+			insert_here = insert_here->way_prev;
+		}
+		
+		
+	/* Next action is to promote blk from its current location in list to insert_here
+	 
+		At this point insert_here could be pointing to:
+			- the same loction as blk, in which case do nothing
+			- the Tail, in which case lets be lazy and call update_way_list(x,y,Tail)
+			- the Head, in which case lets be lazy and call update_way_list(x,y,Head)
+			- middle of list, in which case break links and insert blk  */
+		if ( insert_here == blk )
+		{
+			/* Reorder not necessary, do nothing */
+		}
+		else if ( insert_here == NULL )
+		{
+			/* Insert blk into Head */
+			update_way_list(set, blk, Head);
+		}
+		else if ( insert_here == set->way_tail )
+		{
+			/* Dont think this is a use case, but include here for now 
+				only way we entered this segment is if blk was not the current Tail, 
+					and it is being demoted to the Tail */
+			printf("%s\n", "Calling update_way_list(x,y,Tail) from restore_way_list()...oops??");
+			
+			/* Insert blk into Tail */
+			update_way_list(set, blk, Tail);
+		}
+		else
+		{
+			/* Insert blk into middle of list */
+			assert( (set->way_head != insert_here) && (set->way_tail !=  insert_here) );
+			
+			///* FORNOW: assume that blk is at Tail */
+			//blk->way_prev->way_next = NULL;			// update way_next of neighbor on Head side of blk to point to NULL
+			//set->way_tail = blk->way_prev;			// updates Set's Tail to be blk's old neighbor
+			
+			/* Assume blocks are only promoted when restore function is called (and not demoted)
+				should be a fair assumption since first action above only travered from Tail to Head comparing CRF's */
+			blk->way_prev->way_next = blk->way_next;	// udpate way_next of blk's neighbor on Head side to point to blk's neighbor on Tail side
+			blk->way_next->way_prev = blk->way_prev;	// update way_prev of blk's neighbor on Tail side to point to blk's neighbor on Head side
+			
+			blk->way_next = insert_here; 				// update blk's way_next to point to insert_here
+			blk->way_prev = insert_here->way_prev;		// update blk's way_prev to point to insert_here's way_prev
+			
+			blk->way_prev->way_next = blk;				// udpate way_next of blk's new neighbor on Head side to point to blk
+			blk->way_next->way_prev = blk;				// udpate way_prev of blk's new neighbor on Tail side to point to blk
+			
+// 			/* link blk to location in list pointed to by insert_here */
+// 			blk->way_next = insert_here->way_next;	// update blk's way_next to point to insert_here's way_next
+// 			blk->way_prev = insert_here;			// update blk's way_prev to insert_here
+// 			
+// 			insert_here->way_next 	= blk;			// update insert_here's way_next to point to blk
+// 			blk->way_next->way_prev = blk;			// udpate insert_here's old neighbor to point to blk
+		}
+		
+	return;
 }
 
 /* create and initialize a general cache structure */
@@ -315,6 +425,12 @@ cache_create(char *name,		/* name of the cache */
   cp->assoc = assoc;
   cp->policy = policy;
   cp->hit_latency = hit_latency;
+  
+  /* JRE addition for LRFU repl policy */
+  cp->t_current = 0U;	/* initialize current time to zero */
+  cp->lambda = 1.0;		/* FORNOW: hard code lambda to 1 so that LRFU degenerates to LRU */
+  //cp->lambda = 0.0;	/* FORNOW: hard code lambda to 0 so that LRFU degenerates to LFU */
+  //cp->lambda = 0.0;	/* FORNOW: hard code lambda ... consider allows lambda as test input eventually */
 
   /* miss/replacement functions */
   cp->blk_access_fn = blk_access_fn;
@@ -355,65 +471,70 @@ cache_create(char *name,		/* name of the cache */
   if (!cp->data)
     fatal("out of virtual memory");
 
-  /* slice up the data blocks */
-  for (bindex=0,i=0; i<nsets; i++)
-    {
-      cp->sets[i].way_head = NULL;
-      cp->sets[i].way_tail = NULL;
-      /* get a hash table, if needed */
-      if (cp->hsize)
+	/* slice up the data blocks */
+	for (bindex=0,i=0; i<nsets; i++)
 	{
-	  cp->sets[i].hash =
-	    (struct cache_blk_t **)calloc(cp->hsize,
-					  sizeof(struct cache_blk_t *));
-	  if (!cp->sets[i].hash)
-	    fatal("out of virtual memory");
+		cp->sets[i].way_head = NULL;
+		cp->sets[i].way_tail = NULL;
+		/* get a hash table, if needed */
+		if (cp->hsize)
+		{
+			cp->sets[i].hash =
+			(struct cache_blk_t **)calloc(cp->hsize,
+							sizeof(struct cache_blk_t *));
+			if (!cp->sets[i].hash)
+			fatal("out of virtual memory");
+		}
+		
+		/* NOTE: all the blocks in a set *must* be allocated contiguously,
+		otherwise, block accesses through SET->BLKS will fail (used
+		during random replacement selection) */
+		cp->sets[i].blks = CACHE_BINDEX(cp, cp->data, bindex);
+		
+		/* link the data blocks into ordered way chain and hash table bucket
+			chains, if hash table exists */
+		for (j=0; j<assoc; j++)
+		{
+			/* locate next cache block */
+			blk = CACHE_BINDEX(cp, cp->data, bindex);
+			bindex++;
+
+			/* invalidate new cache block */
+			blk->status = 0;
+			blk->tag = 0;
+			blk->ready = 0;
+			blk->user_data = (usize != 0
+					? (byte_t *)calloc(usize, sizeof(byte_t)) : NULL);
+			
+			/* JRE addition for LRFU */
+			blk->lrfu.crf_last 	= LRFU_WEIGHTING_FUNCTION(0);	/* initialize previous CRF value to F(0) */
+			blk->lrfu.t_last 	= 0U; 	/* initialize previous time value to 0 */
+
+			/* insert cache block into set hash table */
+			if (cp->hsize)
+				link_htab_ent(cp, &cp->sets[i], blk);
+
+			/* insert into head of way list, order is arbitrary at this point */
+			blk->way_next = cp->sets[i].way_head;
+			blk->way_prev = NULL;
+			if (cp->sets[i].way_head)
+				cp->sets[i].way_head->way_prev = blk;
+			cp->sets[i].way_head = blk;
+			if (!cp->sets[i].way_tail)
+				cp->sets[i].way_tail = blk;
+		}
 	}
-      /* NOTE: all the blocks in a set *must* be allocated contiguously,
-	 otherwise, block accesses through SET->BLKS will fail (used
-	 during random replacement selection) */
-      cp->sets[i].blks = CACHE_BINDEX(cp, cp->data, bindex);
-      
-      /* link the data blocks into ordered way chain and hash table bucket
-         chains, if hash table exists */
-      for (j=0; j<assoc; j++)
-	{
-	  /* locate next cache block */
-	  blk = CACHE_BINDEX(cp, cp->data, bindex);
-	  bindex++;
-
-	  /* invalidate new cache block */
-	  blk->status = 0;
-	  blk->tag = 0;
-	  blk->ready = 0;
-	  blk->user_data = (usize != 0
-			    ? (byte_t *)calloc(usize, sizeof(byte_t)) : NULL);
-
-	  /* insert cache block into set hash table */
-	  if (cp->hsize)
-	    link_htab_ent(cp, &cp->sets[i], blk);
-
-	  /* insert into head of way list, order is arbitrary at this point */
-	  blk->way_next = cp->sets[i].way_head;
-	  blk->way_prev = NULL;
-	  if (cp->sets[i].way_head)
-	    cp->sets[i].way_head->way_prev = blk;
-	  cp->sets[i].way_head = blk;
-	  if (!cp->sets[i].way_tail)
-	    cp->sets[i].way_tail = blk;
-	}
-    }
   return cp;
 }
 
 /* parse policy */
-enum cache_policy			/* replacement policy enum */
+enum cache_policy				/* replacement policy enum */
 cache_char2policy(char c)		/* replacement policy as a char */
 {
   switch (c) {
   case 'l': return LRU;
-  case 'x': return LIP;		/* JRE: addition for LIP */
-  case 'b': return BIP;		/* JRE: addition for BIP */
+  case 'x': return LIP;			/* JRE: addition for LIP */
+  case 'a': return LRFU;		/* JRE: addition for LRFU */
   case 'r': return Random;
   case 'f': return FIFO;
   default: fatal("bogus replacement policy, `%c'", c);
@@ -433,7 +554,7 @@ cache_config(struct cache_t *cp,	/* cache instance */
 	  cp->name, cp->assoc,
 	  cp->policy == LRU ? "LRU"
 	  : cp->policy == LIP ? "LIP"			/* JRE: addition for LIP */
-	  : cp->policy == BIP ? "BIP"			/* JRE: addition for BIP */
+	  : cp->policy == LRFU ? "LRFU"			/* JRE: addition for LRFU */
 	  : cp->policy == Random ? "Random"
 	  : cp->policy == FIFO ? "FIFO"
 	  : (abort(), ""));
@@ -505,216 +626,223 @@ cache_stats(struct cache_t *cp,		/* cache instance */
    at NOW, places pointer to block user data in *UDATA, *P is untouched if
    cache blocks are not allocated (!CP->BALLOC), UDATA should be NULL if no
    user data is attached to blocks */
-unsigned int				/* latency of access in cycles */
-cache_access(struct cache_t *cp,	/* cache to access */
-	     enum mem_cmd cmd,		/* access type, Read or Write */
-	     md_addr_t addr,		/* address of access */
-	     void *vp,			/* ptr to buffer for input/output */
-	     int nbytes,		/* number of bytes to access */
-	     tick_t now,		/* time of access */
-	     byte_t **udata,		/* for return of user data ptr */
-	     md_addr_t *repl_addr)	/* for address of replaced block */
+unsigned int							/* latency of access in cycles */
+cache_access(	struct cache_t *cp,		/* cache to access */
+				enum mem_cmd cmd,		/* access type, Read or Write */
+				md_addr_t addr,			/* address of access */
+				void *vp,				/* ptr to buffer for input/output */
+				int nbytes,				/* number of bytes to access */
+				tick_t now,				/* time of access */
+				byte_t **udata,			/* for return of user data ptr */
+				md_addr_t *repl_addr)	/* for address of replaced block */
 {
-  byte_t *p = vp;
-  md_addr_t tag = CACHE_TAG(cp, addr);
-  md_addr_t set = CACHE_SET(cp, addr);
-  md_addr_t bofs = CACHE_BLK(cp, addr);
-  struct cache_blk_t *blk, *repl;
-  int lat = 0;
-  
-  static unsigned int bip_cntr 	 = 0U;
-  static unsigned int debug_cntr = 0U;
+	byte_t *p = vp;
+	md_addr_t tag = CACHE_TAG(cp, addr);
+	md_addr_t set = CACHE_SET(cp, addr);
+	md_addr_t bofs = CACHE_BLK(cp, addr);
+	struct cache_blk_t *blk, *repl;
+	int lat = 0;
 
-  /* default replacement address */
-  if (repl_addr)
-    *repl_addr = 0;
+	/* JRE addition for LRFU - debugging purposes only */
+	static unsigned int debug_cntr = 0U;
+	
+	/* JRE addition for LRFU */
+	cp->t_current++;	/* increment current time for each cache access 
+							this is done at the start of cache_access function due to multiple returns within function */
 
-  /* check alignments */
-  if ((nbytes & (nbytes-1)) != 0 || (addr & (nbytes-1)) != 0)
-    fatal("cache: access error: bad size or alignment, addr 0x%08x", addr);
+	/* default replacement address */
+	if (repl_addr)
+		*repl_addr = 0;
 
-  /* access must fit in cache block */
-  /* FIXME:
-     ((addr + (nbytes - 1)) > ((addr & ~cp->blk_mask) + (cp->bsize - 1))) */
-  if ((addr + nbytes) > ((addr & ~cp->blk_mask) + cp->bsize))
-    fatal("cache: access error: access spans block, addr 0x%08x", addr);
+	/* check alignments */
+	if ((nbytes & (nbytes-1)) != 0 || (addr & (nbytes-1)) != 0)
+		fatal("cache: access error: bad size or alignment, addr 0x%08x", addr);
 
-  /* permissions are checked on cache misses */
+	/* access must fit in cache block */
+	/* FIXME:
+	((addr + (nbytes - 1)) > ((addr & ~cp->blk_mask) + (cp->bsize - 1))) */
+	if ((addr + nbytes) > ((addr & ~cp->blk_mask) + cp->bsize))
+		fatal("cache: access error: access spans block, addr 0x%08x", addr);
 
-  /* check for a fast hit: access to same block */
-  if (CACHE_TAGSET(cp, addr) == cp->last_tagset)
-    {
-      /* hit in the same block */
-      blk = cp->last_blk;
-      goto cache_fast_hit;
-    }
+	/* permissions are checked on cache misses */
+
+	/* check for a fast hit: access to same block */
+	if (CACHE_TAGSET(cp, addr) == cp->last_tagset)
+	{
+		/* hit in the same block */
+		blk = cp->last_blk;
+			goto cache_fast_hit;
+	}
     
-  if (cp->hsize)
-    {
-      /* higly-associativity cache, access through the per-set hash tables */
-      int hindex = CACHE_HASH(cp, tag);
+	if (cp->hsize)
+	{
+		/* higly-associativity cache, access through the per-set hash tables */
+		int hindex = CACHE_HASH(cp, tag);
 
-      for (blk=cp->sets[set].hash[hindex];
-	   blk;
-	   blk=blk->hash_next)
-	{
-	  if (blk->tag == tag && (blk->status & CACHE_BLK_VALID))
-	    goto cache_hit;
-	}
+		for (blk=cp->sets[set].hash[hindex]; blk; blk=blk->hash_next)
+		{
+			if (blk->tag == tag && (blk->status & CACHE_BLK_VALID))
+				goto cache_hit;
+		}
     }
-  else
-    {
-      /* low-associativity cache, linear search the way list */
-      for (blk=cp->sets[set].way_head;
-	   blk;
-	   blk=blk->way_next)
+	else
 	{
-	  if (blk->tag == tag && (blk->status & CACHE_BLK_VALID))
-	    goto cache_hit;
-	}
+		/* low-associativity cache, linear search the way list */
+		for (blk=cp->sets[set].way_head; blk; blk=blk->way_next)
+		{
+			if (blk->tag == tag && (blk->status & CACHE_BLK_VALID))
+				goto cache_hit;
+		}
     }
 
-  /* cache block not found */
+	/* cache block not found */
 
-  /* **MISS** */
-  cp->misses++;
+	
+	/* **MISS** */
+	cp->misses++;
 
-  /* select the appropriate block to replace, and re-link this entry to
-     the appropriate place in the way list */
-  switch (cp->policy) {
-  
-	case LRU:
+	/* select the appropriate block to replace, and re-link this entry to
+		the appropriate place in the way list */
+	switch (cp->policy) 
 	{
-		repl = cp->sets[set].way_tail;
-		update_way_list(&cp->sets[set], repl, Head);
-	}
-	break;
   
-	/* JRE: addition for LIP */
-	case LIP:
-	{
-		repl = cp->sets[set].way_tail;
-// 		/* No need to update way list here because repl is already at the tail */
-	}
-	break;
-  
-	/* JRE: addition for BIP */
-	case BIP:
-	{
-		/* DEBUG */
-		if ( debug_cntr == 0 )
-			printf("%s%d\n", "BIP_CNTR_MAX = ", BIP_CNTR_MAX);
-		debug_cntr++;
-		
-		bip_cntr = (bip_cntr + 1) & (BIP_CNTR_MAX - 1);
-		repl = cp->sets[set].way_tail;
-		
-		if ( bip_cntr != 0 )
+		case LRU:
+		{
+			repl = cp->sets[set].way_tail;
 			update_way_list(&cp->sets[set], repl, Head);
-	}
-	break;
-  
-  
-	case FIFO:
-	{
-		repl = cp->sets[set].way_tail;
-		update_way_list(&cp->sets[set], repl, Head);
-	}
-	break;
-  
-	case Random:
-	{
-		int bindex = myrand() & (cp->assoc - 1);
-		repl = CACHE_BINDEX(cp, cp->sets[set].blks, bindex);
-	}
-	break;
-  
-	default:
-		panic("bogus replacement policy");
+		}
+		break;
+	
+		/* JRE: addition for LIP */
+		case LIP:
+		{
+			repl = cp->sets[set].way_tail;
+			/* No need to update way list here because repl is already at the tail */
+		}
+		break;
+	
+		/* JRE: addition for LRFU */
+		case LRFU:
+		{
+			/* DEBUG */
+			//if ( debug_cntr == 0 )
+			//	printf("%s%d\n", "LRFU ... looks like LRU for now ... ", 0);
+			//debug_cntr++;
+			
+			
+			/* Select block to be replaced, 
+			 	per LRFU maintanance, the tail should be the block with the lowest CRF */
+			repl = cp->sets[set].way_tail;
+			
+			/* At this point the new block is destined for the tail
+				lets update the new blocks CRF and reference time,
+				and then "restore" the block to its rightful place within the existing Set */
+			repl->lrfu.crf_last = LRFU_WEIGHTING_FUNCTION(0);	/* initialize CRF value to F(0) */
+			repl->lrfu.t_last 	= cp->t_current;				/* set referenced time value to current system time */
+			restore_way_list(cp, &cp->sets[set], repl);			/* update location of new block within current Set */
+		}
+		break;
+	
+	
+		case FIFO:
+		{
+			repl = cp->sets[set].way_tail;
+			update_way_list(&cp->sets[set], repl, Head);
+		}
+		break;
+	
+		case Random:
+		{
+			int bindex = myrand() & (cp->assoc - 1);
+			repl = CACHE_BINDEX(cp, cp->sets[set].blks, bindex);
+		}
+		break;
+	
+		default:
+			panic("bogus replacement policy");
   }
 
-  /* remove this block from the hash bucket chain, if hash exists */
-  if (cp->hsize)
-    unlink_htab_ent(cp, &cp->sets[set], repl);
+	/* remove this block from the hash bucket chain, if hash exists */
+	if (cp->hsize)
+		unlink_htab_ent(cp, &cp->sets[set], repl);
 
-  /* blow away the last block to hit */
-  cp->last_tagset = 0;
-  cp->last_blk = NULL;
+	/* blow away the last block to hit */
+	cp->last_tagset = 0;
+	cp->last_blk = NULL;
 
-  /* write back replaced block data */
-  if (repl->status & CACHE_BLK_VALID)
-    {
-      cp->replacements++;
-
-      if (repl_addr)
-	*repl_addr = CACHE_MK_BADDR(cp, repl->tag, set);
- 
-      /* don't replace the block until outstanding misses are satisfied */
-      lat += BOUND_POS(repl->ready - now);
- 
-      /* stall until the bus to next level of memory is available */
-      lat += BOUND_POS(cp->bus_free - (now + lat));
- 
-      /* track bus resource usage */
-      cp->bus_free = MAX(cp->bus_free, (now + lat)) + 1;
-
-      if (repl->status & CACHE_BLK_DIRTY)
+	/* write back replaced block data */
+	if (repl->status & CACHE_BLK_VALID)
 	{
-	  /* write back the cache block */
-	  cp->writebacks++;
-	  lat += cp->blk_access_fn(Write,
-				   CACHE_MK_BADDR(cp, repl->tag, set),
-				   cp->bsize, repl, now+lat);
+		cp->replacements++;
+
+		if (repl_addr)
+			*repl_addr = CACHE_MK_BADDR(cp, repl->tag, set);
+
+		/* don't replace the block until outstanding misses are satisfied */
+		lat += BOUND_POS(repl->ready - now);
+
+		/* stall until the bus to next level of memory is available */
+		lat += BOUND_POS(cp->bus_free - (now + lat));
+
+		/* track bus resource usage */
+		cp->bus_free = MAX(cp->bus_free, (now + lat)) + 1;
+
+		if (repl->status & CACHE_BLK_DIRTY)
+		{
+			/* write back the cache block */
+			cp->writebacks++;
+			lat += cp->blk_access_fn(Write,
+						CACHE_MK_BADDR(cp, repl->tag, set),
+						cp->bsize, repl, now+lat);
+		}
 	}
-    }
 
-  /* update block tags */
-  repl->tag = tag;
-  repl->status = CACHE_BLK_VALID;	/* dirty bit set on update */
+	/* update block tags */
+	repl->tag = tag;
+	repl->status = CACHE_BLK_VALID;	/* dirty bit set on update */
 
-  /* read data block */
-  lat += cp->blk_access_fn(Read, CACHE_BADDR(cp, addr), cp->bsize,
-			   repl, now+lat);
+	/* read data block */
+	lat += cp->blk_access_fn(Read, CACHE_BADDR(cp, addr), cp->bsize, repl, now+lat);
 
-  /* copy data out of cache block */
-  if (cp->balloc)
-    {
-      CACHE_BCOPY(cmd, repl, bofs, p, nbytes);
-    }
+	/* copy data out of cache block */
+	if (cp->balloc)
+	{
+		CACHE_BCOPY(cmd, repl, bofs, p, nbytes);
+	}
 
-  /* update dirty status */
-  if (cmd == Write)
-    repl->status |= CACHE_BLK_DIRTY;
+	/* update dirty status */
+	if (cmd == Write)
+		repl->status |= CACHE_BLK_DIRTY;
 
-  /* get user block data, if requested and it exists */
-  if (udata)
-    *udata = repl->user_data;
+	/* get user block data, if requested and it exists */
+	if (udata)
+		*udata = repl->user_data;
 
-  /* update block status */
-  repl->ready = now+lat;
+	/* update block status */
+	repl->ready = now+lat;
 
-  /* link this entry back into the hash table */
-  if (cp->hsize)
-    link_htab_ent(cp, &cp->sets[set], repl);
+	/* link this entry back into the hash table */
+	if (cp->hsize)
+		link_htab_ent(cp, &cp->sets[set], repl);
 
-  /* return latency of the operation */
-  return lat;
+	/* return latency of the operation */
+	return lat;
 
 
- cache_hit: /* slow hit handler */
+cache_hit: /* slow hit handler */
   
-  /* **HIT** */
-  cp->hits++;
+	/* **HIT** */
+	cp->hits++;
 
-  /* copy data out of cache block, if block exists */
-  if (cp->balloc)
-    {
-      CACHE_BCOPY(cmd, blk, bofs, p, nbytes);
-    }
+	/* copy data out of cache block, if block exists */
+	if (cp->balloc)
+	{
+		CACHE_BCOPY(cmd, blk, bofs, p, nbytes);
+	}
 
-  /* update dirty status */
-  if (cmd == Write)
-    blk->status |= CACHE_BLK_DIRTY;
+	/* update dirty status */
+	if (cmd == Write)
+		blk->status |= CACHE_BLK_DIRTY;
 
 	/* if LRU replacement and this is not the first element of list, reorder */
 	if (blk->way_prev && cp->policy == LRU)
@@ -731,57 +859,81 @@ cache_access(struct cache_t *cp,	/* cache to access */
 		update_way_list(&cp->sets[set], blk, Head);
 	}
 		
-	/* JRE: addition for BIP */
-	/* if BIP replacement and this is not the first element of list, reorder */
-	if (blk->way_prev && cp->policy == BIP)
+		
+	/* JRE: addition for LRFU */
+	/* if LRFU replacement, update CRF and reference time for blk */
+	if ( cp->policy == LRFU )
 	{
-		/* move this block to head of the way (MRU) list */
-		update_way_list(&cp->sets[set], blk, Head);
+		/* CRF last = F(0) + F( current time - block last referenced time ) * CRF last */
+		blk->lrfu.crf_last = LRFU_WEIGHTING_FUNCTION(0) + LRFU_WEIGHTING_FUNCTION( cp->t_current - blk->lrfu.t_last ) * blk->lrfu.crf_last;
+		blk->lrfu.t_last   = cp->t_current;
+		
+		/* If blk is not the Head, call restore function to reorder list */		
+		if ( blk->way_prev != NULL )
+		{
+			restore_way_list(cp, &cp->sets[set], blk);
+		}
 	}
     
     
-  /* tag is unchanged, so hash links (if they exist) are still valid */
+	/* tag is unchanged, so hash links (if they exist) are still valid */
 
-  /* record the last block to hit */
-  cp->last_tagset = CACHE_TAGSET(cp, addr);
-  cp->last_blk = blk;
+	/* record the last block to hit */
+	cp->last_tagset = CACHE_TAGSET(cp, addr);
+	cp->last_blk = blk;
 
-  /* get user block data, if requested and it exists */
-  if (udata)
-    *udata = blk->user_data;
+	/* get user block data, if requested and it exists */
+	if (udata)
+		*udata = blk->user_data;
 
-  /* return first cycle data is available to access */
-  return (int) MAX(cp->hit_latency, (blk->ready - now));
+	/* return first cycle data is available to access */
+	return (int) MAX(cp->hit_latency, (blk->ready - now));
 
- cache_fast_hit: /* fast hit handler */
-  
-  /* **FAST HIT** */
-  cp->hits++;
+	
+cache_fast_hit: /* fast hit handler */
 
-  /* copy data out of cache block, if block exists */
-  if (cp->balloc)
-    {
-      CACHE_BCOPY(cmd, blk, bofs, p, nbytes);
-    }
+	/* **FAST HIT** */
+	cp->hits++;
 
-  /* update dirty status */
-  if (cmd == Write)
-    blk->status |= CACHE_BLK_DIRTY;
+	/* copy data out of cache block, if block exists */
+	if (cp->balloc)
+	{
+		CACHE_BCOPY(cmd, blk, bofs, p, nbytes);
+	}
 
-  /* this block hit last, no change in the way list */
+	/* update dirty status */
+	if (cmd == Write)
+		blk->status |= CACHE_BLK_DIRTY;
 
-  /* tag is unchanged, so hash links (if they exist) are still valid */
+	/* this block hit last, no change in the way list */
+	
+	/* JRE: addition for LRFU */
+	/* if LRFU replacement, update CRF and reference time for blk */
+	if ( cp->policy == LRFU )
+	{
+		/* CRF last = F(0) + F( current time - block last referenced time ) * CRF last */
+		blk->lrfu.crf_last = LRFU_WEIGHTING_FUNCTION(0) + LRFU_WEIGHTING_FUNCTION( cp->t_current - blk->lrfu.t_last ) * blk->lrfu.crf_last;
+		blk->lrfu.t_last   = cp->t_current;
+		
+		/* If blk is not the Head, call restore function to reorder list */		
+		if ( blk->way_prev != NULL )
+		{
+			restore_way_list(cp, &cp->sets[set], blk);
+		}
+	}
 
-  /* get user block data, if requested and it exists */
-  if (udata)
-    *udata = blk->user_data;
+	/* tag is unchanged, so hash links (if they exist) are still valid */
 
-  /* record the last block to hit */
-  cp->last_tagset = CACHE_TAGSET(cp, addr);
-  cp->last_blk = blk;
+	/* get user block data, if requested and it exists */
+	if (udata)
+		*udata = blk->user_data;
 
-  /* return first cycle data is available to access */
-  return (int) MAX(cp->hit_latency, (blk->ready - now));
+	/* record the last block to hit */
+	cp->last_tagset = CACHE_TAGSET(cp, addr);
+	cp->last_blk = blk;
+
+	/* return first cycle data is available to access */
+	return (int) MAX(cp->hit_latency, (blk->ready - now));
 }
 
 /* return non-zero if block containing address ADDR is contained in cache

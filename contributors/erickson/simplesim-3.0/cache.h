@@ -102,7 +102,7 @@
 enum cache_policy {
   LRU,		/* replace least recently used block (perfect LRU) */
   LIP,		/* LRU Insertion Policy */
-  BIP,		/* Bimodal Insertion Policy */
+  LRFU,		/* LRU + LFU replacement Policy */
   Random,	/* replace a random block */
   FIFO		/* replace the oldest block in the set */
 };
@@ -111,27 +111,39 @@ enum cache_policy {
 #define CACHE_BLK_VALID		0x00000001	/* block in valid, in use */
 #define CACHE_BLK_DIRTY		0x00000002	/* dirty block */
 
+/* JRE addition for LRFU repl policy */
+struct blk_lrfu_t
+{
+	float crf_last;			/* CRF value of block at time of previous reference */
+	unsigned int t_last;	/* Time of last block reference 
+								Uint32 should be big enough (~4e9 max value) to avoid rollover during sim */
+};
+
+
 /* cache block (or line) definition */
 struct cache_blk_t
 {
-  struct cache_blk_t *way_next;	/* next block in the ordered way chain, used
-				   to order blocks for replacement */
-  struct cache_blk_t *way_prev;	/* previous block in the order way chain */
-  struct cache_blk_t *hash_next;/* next block in the hash bucket chain, only
-				   used in highly-associative caches */
-  /* since hash table lists are typically small, there is no previous
-     pointer, deletion requires a trip through the hash table bucket list */
-  md_addr_t tag;		/* data block tag value */
-  unsigned int status;		/* block status, see CACHE_BLK_* defs above */
-  tick_t ready;		/* time when block will be accessible, field
-				   is set when a miss fetch is initiated */
-  byte_t *user_data;		/* pointer to user defined data, e.g.,
-				   pre-decode data or physical page address */
-  /* DATA should be pointer-aligned due to preceeding field */
-  /* NOTE: this is a variable-size tail array, this must be the LAST field
-     defined in this structure! */
-  byte_t data[1];		/* actual data block starts here, block size
-				   should probably be a multiple of 8 */
+	struct cache_blk_t *way_next;	/* next block in the ordered way chain, used
+										to order blocks for replacement */
+	struct cache_blk_t *way_prev;	/* previous block in the order way chain */
+	struct cache_blk_t *hash_next;	/* next block in the hash bucket chain, only
+										used in highly-associative caches */
+									/* since hash table lists are typically small, there is no previous
+										pointer, deletion requires a trip through the hash table bucket list */
+	md_addr_t tag;					/* data block tag value */
+	unsigned int status;			/* block status, see CACHE_BLK_* defs above */
+	tick_t ready;					/* time when block will be accessible, field
+										is set when a miss fetch is initiated */
+	byte_t *user_data;				/* pointer to user defined data, e.g.,
+										pre-decode data or physical page address */
+										
+	struct blk_lrfu_t lrfu;				/* maintain previous data needed for LRFU repl policy */
+	
+	/* data should be pointer-aligned due to preceeding field */
+	/* NOTE: this is a variable-size tail array, this must be the LAST field
+		defined in this structure! */
+	byte_t data[1];					/* actual data block starts here, block size
+										should probably be a multiple of 8 */
 };
 
 /* cache set definition (one or more blocks sharing the same set index) */
@@ -149,68 +161,70 @@ struct cache_set_t
 /* cache definition */
 struct cache_t
 {
-  /* parameters */
-  char *name;			/* cache name */
-  int nsets;			/* number of sets */
-  int bsize;			/* block size in bytes */
-  int balloc;			/* maintain cache contents? */
-  int usize;			/* user allocated data size */
-  int assoc;			/* cache associativity */
-  enum cache_policy policy;	/* cache replacement policy */
-  unsigned int hit_latency;	/* cache hit latency */
+	/* parameters */
+	char *name;					/* cache name */
+	int nsets;					/* number of sets */
+	int bsize;					/* block size in bytes */
+	int balloc;					/* maintain cache contents? */
+	int usize;					/* user allocated data size */
+	int assoc;					/* cache associativity */
+	enum cache_policy policy;	/* cache replacement policy */
+	unsigned int hit_latency;	/* cache hit latency */
+	double lambda; 				/* Lambda ranges from 0 to 1 and is used to control LRFU weighting */
+	unsigned int t_current;		/* keep system time for cache in t_current */
 
-  /* miss/replacement handler, read/write BSIZE bytes starting at BADDR
-     from/into cache block BLK, returns the latency of the operation
-     if initiated at NOW, returned latencies indicate how long it takes
-     for the cache access to continue (e.g., fill a write buffer), the
-     miss/repl functions are required to track how this operation will
-     effect the latency of later operations (e.g., write buffer fills),
-     if !BALLOC, then just return the latency; BLK_ACCESS_FN is also
-     responsible for generating any user data and incorporating the latency
-     of that operation */
-  unsigned int					/* latency of block access */
-    (*blk_access_fn)(enum mem_cmd cmd,		/* block access command */
-		     md_addr_t baddr,		/* program address to access */
-		     int bsize,			/* size of the cache block */
-		     struct cache_blk_t *blk,	/* ptr to cache block struct */
-		     tick_t now);		/* when fetch was initiated */
+	/* miss/replacement handler, read/write BSIZE bytes starting at BADDR
+		from/into cache block BLK, returns the latency of the operation
+		if initiated at NOW, returned latencies indicate how long it takes
+		for the cache access to continue (e.g., fill a write buffer), the
+		miss/repl functions are required to track how this operation will
+		effect the latency of later operations (e.g., write buffer fills),
+		if !BALLOC, then just return the latency; BLK_ACCESS_FN is also
+		responsible for generating any user data and incorporating the latency
+		of that operation */
+	unsigned int					/* latency of block access */
+		(*blk_access_fn)(enum mem_cmd cmd,		/* block access command */
+				md_addr_t baddr,		/* program address to access */
+				int bsize,			/* size of the cache block */
+				struct cache_blk_t *blk,	/* ptr to cache block struct */
+				tick_t now);		/* when fetch was initiated */
 
-  /* derived data, for fast decoding */
-  int hsize;			/* cache set hash table size */
-  md_addr_t blk_mask;
-  int set_shift;
-  md_addr_t set_mask;		/* use *after* shift */
-  int tag_shift;
-  md_addr_t tag_mask;		/* use *after* shift */
-  md_addr_t tagset_mask;	/* used for fast hit detection */
+	/* derived data, for fast decoding */
+	int hsize;			/* cache set hash table size */
+	md_addr_t blk_mask;
+	int set_shift;
+	md_addr_t set_mask;		/* use *after* shift */
+	int tag_shift;
+	md_addr_t tag_mask;		/* use *after* shift */
+	md_addr_t tagset_mask;	/* used for fast hit detection */
 
-  /* bus resource */
-  tick_t bus_free;		/* time when bus to next level of cache is
-				   free, NOTE: the bus model assumes only a
-				   single, fully-pipelined port to the next
- 				   level of memory that requires the bus only
- 				   one cycle for cache line transfer (the
- 				   latency of the access to the lower level
- 				   may be more than one cycle, as specified
- 				   by the miss handler */
+	/* bus resource */
+	tick_t bus_free;		/* time when bus to next level of cache is
+					free, NOTE: the bus model assumes only a
+					single, fully-pipelined port to the next
+					level of memory that requires the bus only
+					one cycle for cache line transfer (the
+					latency of the access to the lower level
+					may be more than one cycle, as specified
+					by the miss handler */
 
-  /* per-cache stats */
-  counter_t hits;		/* total number of hits */
-  counter_t misses;		/* total number of misses */
-  counter_t replacements;	/* total number of replacements at misses */
-  counter_t writebacks;		/* total number of writebacks at misses */
-  counter_t invalidations;	/* total number of external invalidations */
+	/* per-cache stats */
+	counter_t hits;		/* total number of hits */
+	counter_t misses;		/* total number of misses */
+	counter_t replacements;	/* total number of replacements at misses */
+	counter_t writebacks;		/* total number of writebacks at misses */
+	counter_t invalidations;	/* total number of external invalidations */
 
-  /* last block to hit, used to optimize cache hit processing */
-  md_addr_t last_tagset;	/* tag of last line accessed */
-  struct cache_blk_t *last_blk;	/* cache block last accessed */
+	/* last block to hit, used to optimize cache hit processing */
+	md_addr_t last_tagset;	/* tag of last line accessed */
+	struct cache_blk_t *last_blk;	/* cache block last accessed */
 
-  /* data blocks */
-  byte_t *data;			/* pointer to data blocks allocation */
-
-  /* NOTE: this is a variable-size tail array, this must be the LAST field
-     defined in this structure! */
-  struct cache_set_t sets[1];	/* each entry is a set */
+	/* data blocks */
+	byte_t *data;			/* pointer to data blocks allocation */
+  
+	/* NOTE: this is a variable-size tail array, this must be the LAST field
+		defined in this structure! */
+	struct cache_set_t sets[1];	/* each entry is a set */
 };
 
 /* create and initialize a general cache structure */

@@ -37,6 +37,10 @@ function post_test
             fclose(fid);
             fstop = length(filetext)-15;  % arbitrary EOF 
             
+            if length(filetext) < 10000
+                continue; % simulation still in progress, skip this file
+            end
+            
             % Skip to simulation configuration
             str1 = '#-config';
             for jdx = 1:fstop
@@ -205,7 +209,7 @@ function post_test
             
             a = pow2s >= min_xs; b = pow2s <= max_xs; xticks = pow2s(a&b);
             plot([SIZE_32KB,SIZE_32KB], [0,ymax], 'k--'); ylim([0,ymax]);
-            set(gca,'XTick', xticks); xlim([min_xs max_xs]);
+            set(gca,'XTick', xticks); try xlim([min_xs max_xs]); end
             eval(['legend(' leg_str '''32KB'')'])
             hold off;
         end
@@ -229,7 +233,7 @@ function post_test
             
             a = pow2s >= min_xs; b = pow2s <= max_xs; xticks = pow2s(a&b);
             plot([SIZE_1024KB,SIZE_1024KB], [0,ymax], 'k--'); ylim([0,ymax]);
-            set(gca,'XTick', xticks); xlim([min_xs max_xs]);
+            set(gca,'XTick', xticks); try xlim([min_xs max_xs]); end
             eval(['legend(' leg_str '''1024KB'')'])
             hold off;
         end

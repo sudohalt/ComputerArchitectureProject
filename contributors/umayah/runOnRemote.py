@@ -26,6 +26,8 @@ machines = ['kh1260-01.cselabs.umn.edu', 'kh1260-02.cselabs.umn.edu',
 	    'kh1260-09.cselabs.umn.edu', 'kh1260-10.cselabs.umn.edu',
 	    'kh1260-11.cselabs.umn.edu', 'kh1260-12.cselabs.umn.edu',
 	    'kh1260-13.cselabs.umn.edu', 'kh1260-14.cselabs.umn.edu']
+
+# Must change these tasks to the correct replacement policy and folders 
 tasks = ['nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:256:32:2:l  -cache:dl2 ul2:256:32:16:i -redir:sim ~/apps/proj/sim/goSim_1 -redir:prog ~/apps/proj/output/11 ~/apps/go/go 50 21 ~/apps/go/5stone9.in &',
 'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:256:32:2:l  -cache:dl2 ul2:256:32:16:i -redir:sim ~/apps/proj/sim/anagramSim_1 -redir:prog ~/apps/proj/output/12 ~/apps/anagram/anagram ~/apps/anagram/words < ~/apps/anagram/anagram.in &',
 'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:256:32:2:l  -cache:dl2 ul2:256:32:16:i -redir:sim ~/apps/proj/sim/gzipSim_1 -redir:prog ~/apps/proj/output/13 ~/apps/gzip/gzip ~/apps/gzip/input.graphic &',

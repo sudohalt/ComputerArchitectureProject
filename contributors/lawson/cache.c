@@ -1063,17 +1063,27 @@ cache_access(struct cache_t *cp,	/* cache to access */
     panic("bogus replacement policy");
   }
 
+   	  #ifdef GARP_PRINT_DEBUG
+	  	printf("Point #1\r\n");
+	  #endif
   /* remove this block from the hash bucket chain, if hash exists */
   if (cp->hsize)
     unlink_htab_ent(cp, &cp->sets[set], repl);
-
+   	  #ifdef GARP_PRINT_DEBUG
+	  	printf("Point #2\r\n");
+	  #endif
   /* blow away the last block to hit */
   cp->last_tagset = 0;
   cp->last_blk = NULL;
-
+   	  #ifdef GARP_PRINT_DEBUG
+	  	printf("Point #3\r\n");
+	  #endif
   /* write back replaced block data */
   if (repl->status & CACHE_BLK_VALID)
     {
+       	  #ifdef GARP_PRINT_DEBUG
+	  	printf("Point #4\r\n");
+	  #endif
       cp->replacements++;
 
       if (repl_addr)
@@ -1096,8 +1106,13 @@ cache_access(struct cache_t *cp,	/* cache to access */
 				   CACHE_MK_BADDR(cp, repl->tag, set),
 				   cp->bsize, repl, now+lat);
 	}
+	   	  #ifdef GARP_PRINT_DEBUG
+	  	printf("Point #5\r\n");
+	  #endif
     }
-
+   	  #ifdef GARP_PRINT_DEBUG
+	  	printf("Point #6\r\n");
+	  #endif
   /* update block tags */
   repl->tag = tag;
   repl->status = CACHE_BLK_VALID;	/* dirty bit set on update */
@@ -1128,6 +1143,9 @@ cache_access(struct cache_t *cp,	/* cache to access */
     link_htab_ent(cp, &cp->sets[set], repl);
 
   /* return latency of the operation */
+     	  #ifdef GARP_PRINT_DEBUG
+	  	printf("Point #3\r\n");
+	  #endif
   return lat;
 
 
@@ -1135,7 +1153,9 @@ cache_access(struct cache_t *cp,	/* cache to access */
   
   /* **HIT** */
   cp->hits++;
-
+   	  #ifdef GARP_PRINT_DEBUG
+	  	printf("Cache Hit\r\n");
+	  #endif
   /* copy data out of cache block, if block exists */
   if (cp->balloc)
     {
@@ -1155,6 +1175,12 @@ cache_access(struct cache_t *cp,	/* cache to access */
     if(cp->policy == GARP_LIP_LRU || cp->policy == GARP_LIP_FIFO || cp->policy ==  GARP_LIP_RAND || cp->policy ==  GARP_LRU_RAND ||
  		cp->policy ==  GARP_LRU_FIFO || cp->policy ==   GARP_RAND_FIFO)
  		{
+ 		  	s = 0;
+		  	for(i = 0; i < cp->nsets* cp->assoc; i++)
+		  	{
+		  		if(cp->recent_faults[i] == POLICY_A_FAULT)
+		  			s++;
+		  	}
     
 			if (blk->way_prev && s > cp->nsets* cp->assoc/ 2 && cp->Bpolicy == LRU ) //in "B" mode
 			{

@@ -96,8 +96,8 @@
 
 /* highly associative caches are implemented using a hash table lookup to
    speed block access, this macro decides if a cache is "highly associative" */
-#define CACHE_HIGHLY_ASSOC(cp)	((cp)->assoc > 4)
-//#define GARP_PRINT_DEBUG
+#define CACHE_HIGHLY_ASSOC(cp)	((cp)->assoc > 16) // changed to 16 to remove hash table
+//#define GARP_PRINT_DEBUG //used to print to terminal for debug
 #define POLICY_A_FAULT	1
 #define POLICY_B_FAULT	2
 #define POLICY_AB_FAULT	3

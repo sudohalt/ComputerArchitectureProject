@@ -347,8 +347,9 @@ sim_check_options(struct opt_odb_t *odb,	/* options database */
     }
   else /* dl1 is defined */
     {
-      if (sscanf(cache_dl1_opt, "%[^:]:%d:%d:%d:%c:%d:%d",
-		 name, &nsets, &bsize, &assoc, &c, &width_BIPCTR, &width_PSEL) != 7)
+	int sscanf_results = sscanf(cache_dl1_opt, "%[^:]:%d:%d:%d:%c:%d:%d",
+		 name, &nsets, &bsize, &assoc, &c, &width_BIPCTR, &width_PSEL);
+      if ( sscanf_results != 7 && sscanf_results != 6 && sscanf_results != 5)
 	fatal("bad l1 D-cache parms: <name>:<nsets>:<bsize>:<assoc>:<repl>:<width_BIPCTR>:<width_PSEL>");
       cache_dl1 = cache_create(name, nsets, bsize, /* balloc */FALSE,
 			       /* usize */0, assoc, cache_char2policy(c),
@@ -359,8 +360,9 @@ sim_check_options(struct opt_odb_t *odb,	/* options database */
 	cache_dl2 = NULL;
       else
 	{
-	  if (sscanf(cache_dl2_opt, "%[^:]:%d:%d:%d:%c:%d:%d",
-		     name, &nsets, &bsize, &assoc, &c, &width_BIPCTR, &width_PSEL) != 7)
+	 int sscanf_results1 = sscanf(cache_dl2_opt, "%[^:]:%d:%d:%d:%c:%d:%d",
+		 name, &nsets, &bsize, &assoc, &c, &width_BIPCTR, &width_PSEL);
+      if ( sscanf_results1 != 7 && sscanf_results1 != 6 && sscanf_results1 != 5)
 	    fatal("bad l2 D-cache parms: "
 		  "<name>:<nsets>:<bsize>:<assoc>:<repl>:<width_BIPCTR>:<width_PSEL>");
 	  cache_dl2 = cache_create(name, nsets, bsize, /* balloc */FALSE,
@@ -403,8 +405,9 @@ sim_check_options(struct opt_odb_t *odb,	/* options database */
     }
   else /* il1 is defined */
     {
-      if (sscanf(cache_il1_opt, "%[^:]:%d:%d:%d:%c:%d:%d",
-		 name, &nsets, &bsize, &assoc, &c, &width_BIPCTR, &width_PSEL) != 7)
+      int sscanf_results2 = sscanf(cache_il1_opt, "%[^:]:%d:%d:%d:%c:%d:%d",
+		 name, &nsets, &bsize, &assoc, &c, &width_BIPCTR, &width_PSEL);
+      if ( sscanf_results2 != 7 && sscanf_results2 != 6 && sscanf_results2 != 5)
 	fatal("bad l1 I-cache parms: <name>:<nsets>:<bsize>:<assoc>:<repl>:<width_BIPCTR>:<width_PSEL>");
       cache_il1 = cache_create(name, nsets, bsize, /* balloc */FALSE,
 			       /* usize */0, assoc, cache_char2policy(c),
@@ -421,8 +424,9 @@ sim_check_options(struct opt_odb_t *odb,	/* options database */
 	}
       else
 	{
-	  if (sscanf(cache_il2_opt, "%[^:]:%d:%d:%d:%c:%d:%d",
-		     name, &nsets, &bsize, &assoc, &c, &width_BIPCTR, &width_PSEL) != 7)
+	  int sscanf_results3 = sscanf(cache_il2_opt, "%[^:]:%d:%d:%d:%c:%d:%d",
+		 name, &nsets, &bsize, &assoc, &c, &width_BIPCTR, &width_PSEL);
+      if ( sscanf_results3 != 7 && sscanf_results3 != 6 && sscanf_results3 != 5)
 	    fatal("bad l2 I-cache parms: "
 		  "<name>:<nsets>:<bsize>:<assoc>:<repl>:<width_BIPCTR>:<width_PSEL>");
 	  cache_il2 = cache_create(name, nsets, bsize, /* balloc */FALSE,
@@ -436,8 +440,9 @@ sim_check_options(struct opt_odb_t *odb,	/* options database */
     itlb = NULL;
   else
     {
-      if (sscanf(itlb_opt, "%[^:]:%d:%d:%d:%c:%d:%d",
-		 name, &nsets, &bsize, &assoc, &c, &width_BIPCTR, &width_PSEL) != 7)
+      int sscanf_results4 = sscanf(itlb_opt, "%[^:]:%d:%d:%d:%c:%d:%d",
+		 name, &nsets, &bsize, &assoc, &c, &width_BIPCTR, &width_PSEL);
+      if ( sscanf_results4 != 7 && sscanf_results4 != 6 && sscanf_results4 != 5)
 	fatal("bad TLB parms: <name>:<nsets>:<page_size>:<assoc>:<repl>:<width_BIPCTR>:<width_PSEL>");
       itlb = cache_create(name, nsets, bsize, /* balloc */FALSE,
 			  /* usize */sizeof(md_addr_t), assoc,
@@ -449,8 +454,9 @@ sim_check_options(struct opt_odb_t *odb,	/* options database */
     dtlb = NULL;
   else
     {
-      if (sscanf(dtlb_opt, "%[^:]:%d:%d:%d:%c:%d:%d",
-		 name, &nsets, &bsize, &assoc, &c, &width_BIPCTR, &width_PSEL) != 7)
+      int sscanf_results5 = sscanf(dtlb_opt, "%[^:]:%d:%d:%d:%c:%d:%d",
+		 name, &nsets, &bsize, &assoc, &c, &width_BIPCTR, &width_PSEL);
+      if ( sscanf_results5 != 7 && sscanf_results5 != 6 && sscanf_results5 != 5)
 	fatal("bad TLB parms: <name>:<nsets>:<page_size>:<assoc>:<repl>:<width_BIPCTR>:<width_PSEL>");
       dtlb = cache_create(name, nsets, bsize, /* balloc */FALSE,
 			  /* usize */sizeof(md_addr_t), assoc,

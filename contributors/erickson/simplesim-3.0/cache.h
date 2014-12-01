@@ -111,14 +111,6 @@ enum cache_policy {
 #define CACHE_BLK_VALID		0x00000001	/* block in valid, in use */
 #define CACHE_BLK_DIRTY		0x00000002	/* dirty block */
 
-/* JRE addition for LRFU repl policy */
-struct blk_lrfu_t
-{
-	float crf_last;			/* CRF value of block at time of previous reference */
-	unsigned int t_last;	/* Time of last block reference 
-								Uint32 should be big enough (~4e9 max value) to avoid rollover during sim */
-};
-
 
 /* cache block (or line) definition */
 struct cache_blk_t
@@ -134,10 +126,14 @@ struct cache_blk_t
 	unsigned int status;			/* block status, see CACHE_BLK_* defs above */
 	tick_t ready;					/* time when block will be accessible, field
 										is set when a miss fetch is initiated */
+	
+	double crf_last;			/* CRF value of block at time of previous reference */
+	unsigned long long int t_last;	/* Time of last block reference 
+								Uint32 should be big enough (~4e9 max value) to avoid rollover during sim */
+	
+	
 	byte_t *user_data;				/* pointer to user defined data, e.g.,
 										pre-decode data or physical page address */
-										
-	struct blk_lrfu_t lrfu;				/* maintain previous data needed for LRFU repl policy */
 	
 	/* data should be pointer-aligned due to preceeding field */
 	/* NOTE: this is a variable-size tail array, this must be the LAST field
@@ -162,16 +158,15 @@ struct cache_set_t
 struct cache_t
 {
 	/* parameters */
-	char *name;					/* cache name */
-	int nsets;					/* number of sets */
-	int bsize;					/* block size in bytes */
-	int balloc;					/* maintain cache contents? */
-	int usize;					/* user allocated data size */
-	int assoc;					/* cache associativity */
-	enum cache_policy policy;	/* cache replacement policy */
-	unsigned int hit_latency;	/* cache hit latency */
-	double lambda; 				/* Lambda ranges from 0 to 1 and is used to control LRFU weighting */
-	unsigned int t_current;		/* keep system time for cache in t_current */
+	char *name;								/* cache name */
+	int nsets;								/* number of sets */
+	int bsize;								/* block size in bytes */
+	int balloc;								/* maintain cache contents? */
+	int usize;								/* user allocated data size */
+	int assoc;								/* cache associativity */
+	enum cache_policy policy;				/* cache replacement policy */
+	unsigned int hit_latency;				/* cache hit latency */
+	unsigned long long int t_current;		/* keep system time for cache in t_current */
 
 	/* miss/replacement handler, read/write BSIZE bytes starting at BADDR
 		from/into cache block BLK, returns the latency of the operation

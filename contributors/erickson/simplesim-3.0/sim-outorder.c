@@ -591,7 +591,7 @@ sim_reg_options(struct opt_odb_t *odb)
   
   /* LRFU lambda */
   opt_reg_double(odb, "-lrfu:lambda", "LRFU replacement policy lambda",
-	       &lambda, /* default */1.0,
+	       &lambda, /* default */0.001,
 	       /* print */TRUE, /* format */NULL);
   
   /* trace options */

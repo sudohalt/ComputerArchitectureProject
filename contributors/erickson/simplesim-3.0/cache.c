@@ -141,8 +141,15 @@
 
 
 /* JRE addition for LRFU */
-#define LRFU_P 	2
-#define LRFU_WEIGHTING_FUNCTION(x) 		pow( (1/LRFU_P), (cp->lambda * (double)(x)) )
+extern double lambda;
+//const double lambda = 1.0;	// LRFU degenerates to LRU (pure recency based replacement)
+//const double lambda = 0.5;	
+//const double lambda = 0.1;
+//const double lambda = 0.01;
+//const double lambda = 0.001;
+//const double lambda = 0.0;	// LRFU degenerates to LFU (pure frequency based replacement)
+#define LRFU_P 	2.0
+#define LRFU_WEIGHTING_FUNCTION(x) 		pow( (1/LRFU_P), (lambda * (double)(x)) )
 
 
 /* unlink BLK from the hash table bucket chain in SET */
@@ -276,7 +283,7 @@ update_way_list(struct cache_set_t *set,	/* set contained way chain */
 /* insert blk into the ordered way chain in set based on relative CRF values */
 static void
 restore_way_list(struct cache_t     *cp, 	/* pointer to cache structure */
-				 struct cache_set_t *set,	/* set contained way chain */
+				 struct cache_set_t *set,	/* set containing way chain */
 				 struct cache_blk_t *blk)	/* block to restore */
 {
 	/* First action is to determine where blk should be inserted into Set */
@@ -291,18 +298,18 @@ restore_way_list(struct cache_t     *cp, 	/* pointer to cache structure */
 		{
 			/* blk is current Head
 				Not currently a use case, nothing to do at this time */
-			assert(set->way_head == blk);
+			assert(set->way_head == blk);			
 			return;
 		}
 		
-		/* blk can be Tail or body, we'll treat it the same either way 
+		/* blk can be Tail or body, 
 			Starting at nearest neighbor on Head side, traverse list towards Head comparing CRF's */
-		assert(set->way_head != blk);
+
 		struct cache_blk_t *insert_here = blk->way_prev;
 		while ( insert_here != NULL )
 		{
-			if ( (LRFU_WEIGHTING_FUNCTION(cp->t_current - blk->lrfu.t_last) 		* blk->lrfu.crf_last		) <  
-			     (LRFU_WEIGHTING_FUNCTION(cp->t_current - insert_here->lrfu.t_last) * insert_here->lrfu.crf_last) )
+			if ( (LRFU_WEIGHTING_FUNCTION(cp->t_current - blk->t_last) * blk->crf_last ) <  
+			     (LRFU_WEIGHTING_FUNCTION(cp->t_current - insert_here->t_last) * insert_here->crf_last) )
 			{
 				/* Set insertion pointer to point back to last block in list */
 				insert_here = insert_here->way_next;
@@ -311,7 +318,6 @@ restore_way_list(struct cache_t     *cp, 	/* pointer to cache structure */
 			/* update insertion pointer to point to next block in list */
 			insert_here = insert_here->way_prev;
 		}
-		
 		
 	/* Next action is to promote blk from its current location in list to insert_here
 	 
@@ -334,21 +340,29 @@ restore_way_list(struct cache_t     *cp, 	/* pointer to cache structure */
 			/* Dont think this is a use case, but include here for now 
 				only way we entered this segment is if blk was not the current Tail, 
 					and it is being demoted to the Tail */
-			printf("%s\n", "Calling update_way_list(x,y,Tail) from restore_way_list()...oops??");
-			
 			/* Insert blk into Tail */
 			update_way_list(set, blk, Tail);
 		}
 		else
 		{
 			/* Insert blk into middle of list */
-			assert( (set->way_head != insert_here) && (set->way_tail !=  insert_here) );
 
 			/* Assume blocks are only promoted when restore function is called (and not demoted)
 				should be a fair assumption since first action above only traversed from Tail to Head comparing CRF's */
-			blk->way_prev->way_next = blk->way_next;	// update way_next of blk's neighbor on Head side to point to blk's neighbor on Tail side
-			blk->way_next->way_prev = blk->way_prev;	// update way_prev of blk's neighbor on Tail side to point to blk's neighbor on Head side
+			if ( blk == set->way_tail )
+			{
+				/* First unlink blk from list */
+				blk->way_prev->way_next = NULL;				// update way_next of blk's neighbor on Head side to point to NULL (make it new tail)
+				set->way_tail = blk->way_prev;				// update set->way_tail to point to the new tail
+			}
+			else
+			{
+				/* First unlink blk from list */
+				blk->way_prev->way_next = blk->way_next;	// update way_next of blk's neighbor on Head side to point to blk's neighbor on Tail side
+				blk->way_next->way_prev = blk->way_prev;	// update way_prev of blk's neighbor on Tail side to point to blk's neighbor on Head side
+			}
 			
+			/* Now insert blk into new location in list */
 			blk->way_next = insert_here; 				// update blk's way_next to point to insert_here
 			blk->way_prev = insert_here->way_prev;		// update blk's way_prev to point to insert_here's way_prev
 			
@@ -358,6 +372,7 @@ restore_way_list(struct cache_t     *cp, 	/* pointer to cache structure */
 		
 	return;
 }
+
 
 /* create and initialize a general cache structure */
 struct cache_t *			/* pointer to cache created */
@@ -415,10 +430,7 @@ cache_create(char *name,		/* name of the cache */
   cp->hit_latency = hit_latency;
   
   /* JRE addition for LRFU repl policy */
-  cp->t_current = 0U;	/* initialize current time to zero */
-  cp->lambda = 1.0;		/* FORNOW: hard code lambda to 1 so that LRFU degenerates to LRU */
-  //cp->lambda = 0.0;	/* FORNOW: hard code lambda to 0 so that LRFU degenerates to LFU */
-  //cp->lambda = 0.0;	/* EVENTUALLY: consider allowing lambda as test input to sim command */
+  cp->t_current = 0;	/* initialize current time to zero */
 
   /* miss/replacement functions */
   cp->blk_access_fn = blk_access_fn;
@@ -495,8 +507,8 @@ cache_create(char *name,		/* name of the cache */
 					? (byte_t *)calloc(usize, sizeof(byte_t)) : NULL);
 			
 			/* JRE addition for LRFU */
-			blk->lrfu.crf_last 	= LRFU_WEIGHTING_FUNCTION(0);	/* initialize previous CRF value to F(0) */
-			blk->lrfu.t_last 	= 0U; 	/* initialize previous time value to 0 */
+			blk->crf_last 	= LRFU_WEIGHTING_FUNCTION(0);	/* initialize previous CRF value to F(0) */
+			blk->t_last 	= 0; 	/* initialize previous time value to 0 */
 
 			/* insert cache block into set hash table */
 			if (cp->hsize)
@@ -630,9 +642,6 @@ cache_access(	struct cache_t *cp,		/* cache to access */
 	md_addr_t bofs = CACHE_BLK(cp, addr);
 	struct cache_blk_t *blk, *repl;
 	int lat = 0;
-
-	/* JRE addition for LRFU - debugging purposes only */
-	//static unsigned int debug_cntr = 0U;
 	
 	/* JRE addition for LRFU */
 	cp->t_current++;	/* increment current time for each cache access 
@@ -712,12 +721,6 @@ cache_access(	struct cache_t *cp,		/* cache to access */
 		/* JRE: addition for LRFU */
 		case LRFU:
 		{
-			/* DEBUG */
-			//if ( debug_cntr == 0 )
-			//	printf("%s%d\n", "LRFU ... looks like LRU for now ... ", 0);
-			//debug_cntr++;
-			
-			
 			/* Select block to be replaced, 
 			 	per LRFU maintenance, the tail should be the block with the lowest CRF */
 			repl = cp->sets[set].way_tail;
@@ -725,9 +728,9 @@ cache_access(	struct cache_t *cp,		/* cache to access */
 			/* At this point the new block is destined for the tail
 				lets update the new blocks CRF and reference time,
 				and then "restore" the block to its rightful place within the existing Set */
-			repl->lrfu.crf_last = LRFU_WEIGHTING_FUNCTION(0);	/* initialize CRF value to F(0) */
-			repl->lrfu.t_last 	= cp->t_current;				/* set referenced time value to current system time */
-			restore_way_list(cp, &cp->sets[set], repl);			/* update location of new block within current Set */
+			repl->crf_last = LRFU_WEIGHTING_FUNCTION(0);	/* initialize CRF value to F(0) */
+			repl->t_last   = cp->t_current;					/* set referenced time value to current system time */
+			restore_way_list(cp, &cp->sets[set], repl);		/* update location of new block within current Set */
 		}
 		break;
 	
@@ -852,9 +855,8 @@ cache_hit: /* slow hit handler */
 	/* if LRFU replacement, update CRF and reference time for blk */
 	if ( cp->policy == LRFU )
 	{
-		/* CRF last = F(0) + F( current time - block last referenced time ) * CRF last */
-		blk->lrfu.crf_last = LRFU_WEIGHTING_FUNCTION(0) + LRFU_WEIGHTING_FUNCTION( cp->t_current - blk->lrfu.t_last ) * blk->lrfu.crf_last;
-		blk->lrfu.t_last   = cp->t_current;
+		blk->crf_last = LRFU_WEIGHTING_FUNCTION(0) + LRFU_WEIGHTING_FUNCTION( cp->t_current - blk->t_last ) * blk->crf_last;
+		blk->t_last   = cp->t_current;
 		
 		/* If blk is not the Head, call restore function to reorder list */		
 		if ( blk->way_prev != NULL )
@@ -899,9 +901,8 @@ cache_fast_hit: /* fast hit handler */
 	/* if LRFU replacement, update CRF and reference time for blk */
 	if ( cp->policy == LRFU )
 	{
-		/* CRF last = F(0) + F( current time - block last referenced time ) * CRF last */
-		blk->lrfu.crf_last = LRFU_WEIGHTING_FUNCTION(0) + LRFU_WEIGHTING_FUNCTION( cp->t_current - blk->lrfu.t_last ) * blk->lrfu.crf_last;
-		blk->lrfu.t_last   = cp->t_current;
+		blk->crf_last = LRFU_WEIGHTING_FUNCTION(0) + LRFU_WEIGHTING_FUNCTION( cp->t_current - blk->t_last ) * blk->crf_last;
+		blk->t_last   = cp->t_current;
 		
 		/* If blk is not the Head, call restore function to reorder list */		
 		if ( blk->way_prev != NULL )

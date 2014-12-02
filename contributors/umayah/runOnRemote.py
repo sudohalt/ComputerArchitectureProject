@@ -28,10 +28,23 @@ machines = ['kh1260-01.cselabs.umn.edu', 'kh1260-02.cselabs.umn.edu',
 	    'kh1260-13.cselabs.umn.edu', 'kh1260-14.cselabs.umn.edu']
 
 # Must change these tasks to the correct replacement policy and folders 
-tasks = ['nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:256:32:2:l  -cache:dl2 ul2:256:32:16:i -redir:sim ~/apps/proj/sim/goSim_1 -redir:prog ~/apps/proj/output/11 ~/apps/go/go 50 21 ~/apps/go/5stone21.in &',
-'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:128:64:2:l  -cache:dl2 ul2:256:64:16:i -redir:sim ~/apps/proj/sim/goSim_2 -redir:prog ~/apps/proj/output/21 ~/apps/go/go 50 21 ~/apps/go/5stone21.in &',
-'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:64:128:2:l  -cache:dl2 ul2:256:128:16:i -redir:sim ~/apps/proj/sim/goSim_3 -redir:prog ~/apps/proj/output/31 ~/apps/go/go 50 21 ~/apps/go/5stone21.in &',
-'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:32:256:2:l  -cache:dl2 ul2:256:256:16:i -redir:sim ~/apps/proj/sim/goSim_4 -redir:prog ~/apps/proj/output/41 ~/apps/go/go 50 21 ~/apps/go/5stone21.in &']	 
+tasks = [
+'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:256:32:2:l  -cache:dl2 ul2:256:32:16:b:5 -redir:sim ~/apps/proj_bip/sim/goSim_1 -redir:prog ~/apps/proj_bip/output/11 ~/apps/go/go 50 21 ~/apps/go/5stone21.in &',
+'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:256:32:2:l  -cache:dl2 ul2:256:32:16:b:5 -redir:sim ~/apps/proj_bip/sim/anagramSim_1 -redir:prog ~/apps/proj_bip/output/12 ~/apps/anagram/anagram ~/apps/anagram/words < ~/apps/anagram/anagram.in &',
+'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:256:32:2:l  -cache:dl2 ul2:256:32:16:b:5 -redir:sim ~/apps/proj_bip/sim/gzipSim_1 -redir:prog ~/apps/proj_bip/output/13 ~/apps/gzip/gzip ~/apps/gzip/input.graphic &',
+'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:256:32:2:l  -cache:dl2 ul2:256:32:16:b:5 -redir:sim ~/apps/proj_bip/sim/gccSim_1 -redir:prog ~/apps/proj_bip/output/14 ~/apps/gcc/gcc -O ~/apps/gcc/166.i &',
+'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:128:64:2:l  -cache:dl2 ul2:256:64:16:b:5 -redir:sim ~/apps/proj_bip/sim/goSim_2 -redir:prog ~/apps/proj_bip/output/21 ~/apps/go/go 50 21 ~/apps/go/5stone21.in &',
+'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:128:64:2:l  -cache:dl2 ul2:256:64:16:b:5 -redir:sim ~/apps/proj_bip/sim/anagramSim_2 -redir:prog ~/apps/proj_bip/output/22 ~/apps/anagram/anagram ~/apps/anagram/words < ~/apps/anagram/anagram.in &',
+'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:128:64:2:l  -cache:dl2 ul2:256:64:16:b:5 -redir:sim ~/apps/proj_bip/sim/gzipSim_2 -redir:prog ~/apps/proj_bip/output/23 ~/apps/gzip/gzip ~/apps/gzip/input.graphic &',
+'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:128:64:2:l  -cache:dl2 ul2:256:64:16:b:5 -redir:sim ~/apps/proj_bip/sim/gccSim_2 -redir:prog ~/apps/proj_bip/output/24 ~/apps/gcc/gcc -O ~/apps/gcc/166.i &',
+'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:64:128:2:l  -cache:dl2 ul2:256:128:16:b:5 -redir:sim ~/apps/proj_bip/sim/goSim_3 -redir:prog ~/apps/proj_bip/output/31 ~/apps/go/go 50 21 ~/apps/go/5stone21.in &',
+'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:64:128:2:l  -cache:dl2 ul2:256:128:16:b:5 -redir:sim ~/apps/proj_bip/sim/anagramSim_3 -redir:prog ~/apps/proj_bip/output/32 ~/apps/anagram/anagram ~/apps/anagram/words < ~/apps/anagram/anagram.in &',
+'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:64:128:2:l  -cache:dl2 ul2:256:128:16:b:5 -redir:sim ~/apps/proj_bip/sim/gzipSim_3 -redir:prog ~/apps/proj_bip/output/33 ~/apps/gzip/gzip ~/apps/gzip/input.graphic &',
+'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:64:128:2:l  -cache:dl2 ul2:256:128:16:b:5 -redir:sim ~/apps/proj_bip/sim/gccSim_3 -redir:prog ~/apps/proj_bip/output/34 ~/apps/gcc/gcc -O ~/apps/gcc/166.i &',
+'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:32:256:2:l  -cache:dl2 ul2:256:256:16:b:5 -redir:sim ~/apps/proj_bip/sim/goSim_4 -redir:prog ~/apps/proj_bip/output/41 ~/apps/go/go 50 21 ~/apps/go/5stone21.in &',
+'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:32:256:2:l  -cache:dl2 ul2:256:256:16:b:5 -redir:sim ~/apps/proj_bip/sim/anagramSim_4 -redir:prog ~/apps/proj_bip/output/42 ~/apps/anagram/anagram ~/apps/anagram/words < ~/apps/anagram/anagram.in &',
+'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:32:256:2:l  -cache:dl2 ul2:256:256:16:b:5 -redir:sim ~/apps/proj_bip/sim/gzipSim_4 -redir:prog ~/apps/proj_bip/output/43 ~/apps/gzip/gzip ~/apps/gzip/input.graphic &',
+'nohup simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:32:256:2:l  -cache:dl2 ul2:256:256:16:b:5 -redir:sim ~/apps/proj_bip/sim/gccSim_4 -redir:prog ~/apps/proj_bip/output/44 ~/apps/gcc/gcc -O ~/apps/gcc/166.i &']
 if __name__ == "__main__":
 	username = sys.argv[1] 	
 	password = sys.argv[2]

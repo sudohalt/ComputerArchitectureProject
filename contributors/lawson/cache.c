@@ -766,14 +766,13 @@ cache_access(struct cache_t *cp,	/* cache to access */
 	    		break;
 	    	}
 		}
-		if( !block_found_A  || !block_found_B)
+		if((!block_found_A && block_found_B) || (block_found_A && !block_found_B))
 		{
-			if(!block_found_A && !block_found_B)
-				cp->recent_faults[cp->recent_faults_index] = POLICY_AB_FAULT;
-			else if(!block_found_A)
+			if(!block_found_A)
 				cp->recent_faults[cp->recent_faults_index] = POLICY_A_FAULT;
 			else if (!block_found_B)
 				cp->recent_faults[cp->recent_faults_index] = POLICY_B_FAULT;
+				
 			if(cp->recent_faults_index >= cp->nsets * cp->assoc)
 				cp->recent_faults_index = 0;
 			else
@@ -997,12 +996,13 @@ cache_access(struct cache_t *cp,	/* cache to access */
   case GARP_LRU_FIFO:
   case GARP_RAND_FIFO:
   	s = 0;
-  	for(i = 0; i < cp->nsets* cp->assoc; i++)
+  	k = cp->nsets* cp->assoc;
+  	for(i = 0; i < k; i++)
   	{
   		if(cp->recent_faults[i] == POLICY_A_FAULT)
   			s++;
   	}
-  	if(s > cp->nsets* cp->assoc/ 2) //in "B" Mode 
+  	if(s > k/ 2) //in "B" Mode 
     {
      #ifdef GARP_PRINT_DEBUG
 	  	printf("In B Mode\r\n");
@@ -1175,32 +1175,33 @@ cache_access(struct cache_t *cp,	/* cache to access */
     if(cp->policy == GARP_LIP_LRU || cp->policy == GARP_LIP_FIFO || cp->policy ==  GARP_LIP_RAND || cp->policy ==  GARP_LRU_RAND ||
  		cp->policy ==  GARP_LRU_FIFO || cp->policy ==   GARP_RAND_FIFO)
  		{
- 		  	s = 0;
-		  	for(i = 0; i < cp->nsets* cp->assoc; i++)
+		  	s = 0;
+		  	k = cp->nsets* cp->assoc;
+		  	for(i = 0; i < k; i++)
 		  	{
 		  		if(cp->recent_faults[i] == POLICY_A_FAULT)
 		  			s++;
 		  	}
     
-			if (blk->way_prev && s > cp->nsets* cp->assoc/ 2 && cp->Bpolicy == LRU ) //in "B" mode
+			if (blk->way_prev && s > k/ 2 && cp->Bpolicy == LRU ) //in "B" mode
 			{
 			      /* move this block to head of the way (MRU) list */
 		  		update_way_list(&cp->sets[set], blk, Head);
 		  	}
-		  	else if (blk->way_prev && s <= cp->nsets* cp->assoc/ 2 && cp->Apolicy == LRU ) //in "A" mode
+		  	else if (blk->way_prev && s <= k/ 2 && cp->Apolicy == LRU ) //in "A" mode
 		  	{
 			      /* move this block to head of the way (MRU) list */
 		  		update_way_list(&cp->sets[set], blk, Head);
 		  	}
 		  	  /* if LIP/BIP16/BIP32/BIP64/BIP128 replacement and this is the last element of the list, reorder */
 		  	if (!blk->way_next && (cp->Apolicy == LIP || cp->Apolicy == BIP16 || cp->Apolicy == BIP32  
-			  || cp->Apolicy == BIP64 || cp->Apolicy == BIP128) && s <= cp->nsets* cp->assoc/ 2 ) //in "A" mode
+			  || cp->Apolicy == BIP64 || cp->Apolicy == BIP128) && s <= k/ 2 ) //in "A" mode
 			{
 			  /* move this block to head of the way (MRU) list */
 			  update_way_list(&cp->sets[set], blk, Head);
 			}
 			else if (!blk->way_next && (cp->Bpolicy == LIP || cp->Bpolicy == BIP16 || cp->Bpolicy == BIP32  
-			  || cp->Bpolicy == BIP64 || cp->Bpolicy == BIP128) && s > cp->nsets* cp->assoc/ 2 ) //in "B" mode
+			  || cp->Bpolicy == BIP64 || cp->Bpolicy == BIP128) && s > k/ 2 ) //in "B" mode
 			{
 			  /* move this block to head of the way (MRU) list */
 			  update_way_list(&cp->sets[set], blk, Head);

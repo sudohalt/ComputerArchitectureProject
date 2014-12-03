@@ -94,8 +94,8 @@ static struct mem_t *mem = NULL;
 /* maximum number of inst's to execute */
 static unsigned int max_insts;
 
-/* BIP replacement policy counter limit */
-unsigned int BIP_CNTR_MAX;
+/* LRFU replacement policy Lambda input */
+double lambda;
 
 /* number of insts skipped before timing starts */
 static int fastfwd_count;
@@ -588,10 +588,10 @@ sim_reg_options(struct opt_odb_t *odb)
   opt_reg_uint(odb, "-max:inst", "maximum number of inst's to execute",
 	       &max_insts, /* default */0,
 	       /* print */TRUE, /* format */NULL);
-
-  /* BIP counter limit */
-  opt_reg_uint(odb, "-bip:cntr", "BIP replacement policy counter limit",
-	       &BIP_CNTR_MAX, /* default */0,
+  
+  /* LRFU lambda */
+  opt_reg_double(odb, "-lrfu:lambda", "LRFU replacement policy lambda",
+	       &lambda, /* default */0.00001,
 	       /* print */TRUE, /* format */NULL);
   
   /* trace options */
@@ -748,20 +748,20 @@ sim_reg_options(struct opt_odb_t *odb)
 		 &cache_dl1_opt, "dl1:128:32:4:l",
 		 /* print */TRUE, NULL);
 
-//   opt_reg_note(odb,
-// "  The cache config parameter <config> has the following format:\n"
-// "\n"
-// "    <name>:<nsets>:<bsize>:<assoc>:<repl>\n"
-// "\n"
-// "    <name>   - name of the cache being defined\n"
-// "    <nsets>  - number of sets in the cache\n"
-// "    <bsize>  - block size of the cache\n"
-// "    <assoc>  - associativity of the cache\n"
-// "    <repl>   - block replacement strategy, 'l'-LRU, 'f'-FIFO, 'r'-random\n"
-// "\n"
-// "    Examples:   -cache:dl1 dl1:4096:32:1:l\n"
-// "                -dtlb dtlb:128:4096:32:r\n"
-// 	       );
+  opt_reg_note(odb,
+"  The cache config parameter <config> has the following format:\n"
+"\n"
+"    <name>:<nsets>:<bsize>:<assoc>:<repl>\n"
+"\n"
+"    <name>   - name of the cache being defined\n"
+"    <nsets>  - number of sets in the cache\n"
+"    <bsize>  - block size of the cache\n"
+"    <assoc>  - associativity of the cache\n"
+"    <repl>   - block replacement strategy, 'l'-LRU, 'f'-FIFO, 'r'-random\n"
+"\n"
+"    Examples:   -cache:dl1 dl1:4096:32:1:l\n"
+"                -dtlb dtlb:128:4096:32:r\n"
+	       );
 
   opt_reg_int(odb, "-cache:dl1lat",
 	      "l1 data cache hit latency (in cycles)",
@@ -783,19 +783,19 @@ sim_reg_options(struct opt_odb_t *odb)
 		 &cache_il1_opt, "il1:512:32:1:l",
 		 /* print */TRUE, NULL);
 
-//   opt_reg_note(odb,
-// "  Cache levels can be unified by pointing a level of the instruction cache\n"
-// "  hierarchy at the data cache hiearchy using the \"dl1\" and \"dl2\" cache\n"
-// "  configuration arguments.  Most sensible combinations are supported, e.g.,\n"
-// "\n"
-// "    A unified l2 cache (il2 is pointed at dl2):\n"
-// "      -cache:il1 il1:128:64:1:l -cache:il2 dl2\n"
-// "      -cache:dl1 dl1:256:32:1:l -cache:dl2 ul2:1024:64:2:l\n"
-// "\n"
-// "    Or, a fully unified cache hierarchy (il1 pointed at dl1):\n"
-// "      -cache:il1 dl1\n"
-// "      -cache:dl1 ul1:256:32:1:l -cache:dl2 ul2:1024:64:2:l\n"
-// 	       );
+  opt_reg_note(odb,
+"  Cache levels can be unified by pointing a level of the instruction cache\n"
+"  hierarchy at the data cache hiearchy using the \"dl1\" and \"dl2\" cache\n"
+"  configuration arguments.  Most sensible combinations are supported, e.g.,\n"
+"\n"
+"    A unified l2 cache (il2 is pointed at dl2):\n"
+"      -cache:il1 il1:128:64:1:l -cache:il2 dl2\n"
+"      -cache:dl1 dl1:256:32:1:l -cache:dl2 ul2:1024:64:2:l\n"
+"\n"
+"    Or, a fully unified cache hierarchy (il1 pointed at dl1):\n"
+"      -cache:il1 dl1\n"
+"      -cache:dl1 ul1:256:32:1:l -cache:dl2 ul2:1024:64:2:l\n"
+	       );
 
   opt_reg_int(odb, "-cache:il1lat",
 	      "l1 instruction cache hit latency (in cycles)",

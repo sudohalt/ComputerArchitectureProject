@@ -11,6 +11,7 @@ function post_test
                 'go     '; ...
                 'gzip   '];
     
+    ANALYZE_IPC      = true;
     ANALYZE_L1       = false;
     ANALYZE_L2       = true;
     SAVE_FIGS        = true;
@@ -97,9 +98,28 @@ function post_test
                     bsize_l2 = str2double(a);
                     [a, b]= strtok(b,':');
                     alloc_l2 = str2double(a);
-                    repl_l2 = b(2:end);
+                    %repl_l2 = b(2:end);
+                    repl_l2 = b(2);
 
                     cache_size_l2 = nsets_l2 * bsize_l2 * alloc_l2 * SCALE_TO_KB;
+                	jdx_prev = jdx;
+                    break;
+                end
+            end
+
+            % Look for string: "sim_IPC"
+            str1 = 'sim_IPC';
+            for jdx = jdx_prev:fstop
+                str2 = filetext(jdx:jdx+length(str1)-1);
+
+                if strcmp(str1,str2)
+                    kdx1 = jdx+length(str1);
+                    kdx2 = jdx+length(str1);
+                    while ~strcmp(filetext(kdx2),'#')
+                        kdx2=kdx2+1;
+                    end
+                    kdx2=kdx2-1;
+                    sim_ipc = str2double(filetext(kdx1:kdx2));
                 	jdx_prev = jdx;
                     break;
                 end
@@ -117,13 +137,13 @@ function post_test
                         kdx2=kdx2+1;
                     end
                     kdx2=kdx2-1;
-                    miss_rate_l1 = str2double(filetext(kdx1:kdx2)) * SCALE_TO_PERCENT;
+                    miss_rate_l1 = str2double(filetext(kdx1:kdx2));
                 	jdx_prev = jdx;
                     break;
                 end
             end
-
-            % Look for string: "dl1.miss_rate"
+            
+            % Look for string: "ul2.miss_rate"
             str1 = 'ul2.miss_rate';
             for jdx = jdx_prev:fstop
                 str2 = filetext(jdx:jdx+length(str1)-1);
@@ -135,7 +155,7 @@ function post_test
                         kdx2=kdx2+1;
                     end
                     kdx2=kdx2-1;
-                    miss_rate_l2 = str2double(filetext(kdx1:kdx2)) * SCALE_TO_PERCENT;
+                    miss_rate_l2 = str2double(filetext(kdx1:kdx2));
                     jdx_prev = jdx;
                     break;
                 end
@@ -147,55 +167,84 @@ function post_test
             [b c] = strtok(file_list(idx,a:end), '.');
             T_idx = str2double(b(2:end));
             
-            Data_Common = [T_idx cache_size_l1 nsets_l1 bsize_l1 alloc_l1 ...
-                                 cache_size_l2 nsets_l2 bsize_l2 alloc_l2];
+            % Convert miss rates into hit rates
+            hit_rate_l1 = (1 - miss_rate_l1) * SCALE_TO_PERCENT;
+            hit_rate_l2 = (1 - miss_rate_l2) * SCALE_TO_PERCENT;
+            
+            Data_Common = [T_idx ...                                    % Test case
+                           cache_size_l1 nsets_l1 bsize_l1 alloc_l1 ... % L1 cache size
+                           cache_size_l2 nsets_l2 bsize_l2 alloc_l2 ... % L2 cache size
+                           hit_rate_l1 hit_rate_l2 sim_ipc];            % Performance
 
             if strcmp(repl_l2,'l')
-                Data_LRU(T_idx,:) = [Data_Common miss_rate_l1 miss_rate_l2];
+                Data_LRU(T_idx,:) = Data_Common;
+            elseif strcmp(repl_l2,'f')
+                Data_FIFO(T_idx,:) = Data_Common;
+            elseif strcmp(repl_l2,'r')
+                Data_RAND(T_idx,:) = Data_Common;
+                
+            elseif strcmp(repl_l2,'i')
+                Data_LIP(T_idx,:) = Data_Common;
+            elseif strcmp(repl_l2,'d')
+                Data_DIP(T_idx,:) = Data_Common;
             elseif strcmp(repl_l2,'a')
-                Data_LRFU(T_idx,:) = [Data_Common miss_rate_l1 miss_rate_l2];
+                Data_LRFU(T_idx,:) = Data_Common;
+            
+            elseif strcmp(repl_l2,'s')
+                Data_LIP_LRU(T_idx,:) = Data_Common;
+            elseif strcmp(repl_l2,'t')
+                Data_LIP_FIFO(T_idx,:) = Data_Common;
+            elseif strcmp(repl_l2,'u')
+                Data_LIP_RAND(T_idx,:) = Data_Common;
+            elseif strcmp(repl_l2,'v')
+                Data_LRU_RAND(T_idx,:) = Data_Common;
+            elseif strcmp(repl_l2,'w')
+                Data_LRU_FIFO(T_idx,:) = Data_Common;
             elseif strcmp(repl_l2,'x')
-                Data_LIP(T_idx,:) = [Data_Common miss_rate_l1 miss_rate_l2];
-            elseif strcmp(repl_l2,'b')
-                Data_BIP(T_idx,:) = [Data_Common miss_rate_l1 miss_rate_l2];
+                Data_RAND_FIFO(T_idx,:) = Data_Common;
             end
         end
         
         
         % Generate plots and csvs
-        L1_plot_str = '';
-        L2_plot_str = '';
+        IPC_plot_str = '';
+        L1_plot_str  = '';
+        L2_plot_str  = '';
         leg_str = '';
         csv_out = ['analysis.' program '.csv'];
         csv_hdr = 'Test_Case, DL1_cache_size, DL1_nsets, DL1_bsize, DL1_alloc, DL2_cache_size, DL2_nsets, DL2_bsize, DL2_alloc';
         
-        repl_pols = ['LRU '; 'FIFO'; 'RAND'; 'LIP '; 'BIP '; 'DIP '; 'LRFU'; 'GARP'];
+        repl_pols = {'LRU'; 'FIFO'; 'RAND'; 'LIP'; 'DIP'; 'LRFU'; ...
+                     'LIP_LRU';  'LIP_FIFO'; 'LIP_RAND'; ...
+                     'LRU_RAND'; 'LRU_FIFO'; 'RAND_FIFO'};
         for pol_idx = 1:size(repl_pols,1)
             
-            pol = ['Data_' repl_pols(pol_idx,:)]; pol(pol==' ') = '';
+            %pol = ['Data_' repl_pols(pol_idx,:)]; pol(pol==' ') = '';
+            pol = ['Data_' repl_pols{pol_idx}];
             if exist(pol,'var')
-                L1_plot_str = [L1_plot_str pol '(:,2), ' pol '(:,10),''.-'', '];
-                L2_plot_str = [L2_plot_str pol '(:,6), ' pol '(:,11),''.-'', '];
-                leg_str = [leg_str '''' pol(6:end) ''','];
+                IPC_plot_str = [IPC_plot_str pol '(:,6), ' pol '(:,12),''.-'', '];
+                L1_plot_str  = [L1_plot_str pol '(:,2), ' pol '(:,10),''.-'', '];
+                L2_plot_str  = [L2_plot_str pol '(:,6), ' pol '(:,11),''.-'', '];
+                
+                leg_str      = [leg_str '''' pol(6:end) ''','];
 
                 % write data to csv
                 fid = fopen(csv_out,'a');
-                fprintf(fid, '%s\n', [csv_hdr ',',pol(6:end),' DL1_miss_rate (%),',pol(6:end),' DL2_miss_rate (%)']);
+                fprintf(fid, '%s\n', [csv_hdr ',', pol(6:end),' IPC,', pol(6:end),' DL1_hit_rate (%),', pol(6:end),' DL2_hit_rate (%)']);
                 fclose(fid);
                 eval(['dlmwrite(csv_out,', pol, ',''-append'')']);
             end
         end
                 
         
-        % generate plots of L1 and L2 miss rates versus cache size
+        % generate plots of IPC, L1 and L2 miss rates versus cache size
         pow2s = [16 32 64 128 256 512 1024 2048 4096];
         
-        if ANALYZE_L1
-            L1_plot_str = ['figure;hold all;plot(', L1_plot_str(1:end-2), ')'];
-            eval(L1_plot_str);
-            title([program ': L1 Cache Miss Rate vs Cache Size']); grid on; 
-            xlabel('L1 Cache Size (KB)'); ylabel('L1 Miss Rate (%)'); 
-            ys = ylim; ymax = ys(2);
+        if ANALYZE_IPC
+            IPC_plot_str = ['figure;hold all;plot(', IPC_plot_str(1:end-2), ')'];
+            eval(IPC_plot_str);
+            title(['IPC (' program ')']); grid on; 
+            xlabel('L2 Cache Size (KB)'); ylabel('Instructions Per Cycle (IPC)');
             h = findobj(gca,'Type','line'); xs=get(h,'Xdata');
             
             % in case more than one data set on plot
@@ -208,18 +257,45 @@ function post_test
             else min_xs = min(xs); max_xs = max(xs); end
             
             a = pow2s >= min_xs; b = pow2s <= max_xs; xticks = pow2s(a&b);
-            plot([SIZE_32KB,SIZE_32KB], [0,ymax], 'k--'); ylim([0,ymax]);
             set(gca,'XTick', xticks); try xlim([min_xs max_xs]); end
-            eval(['legend(' leg_str '''32KB'')'])
+            
+            %eval(['legend(' leg_str '''Location'', ''Best'')']);
+            eval(['legend(' strrep(leg_str,'_','\_') '''Location'', ''Best'')']);
+            hold off;
+        end
+        
+        if ANALYZE_L1
+            L1_plot_str = ['figure;hold all;plot(', L1_plot_str(1:end-2), ')'];
+            eval(L1_plot_str);
+            title(['L1 Cache Hit Rate (' program  ')']); grid on; 
+            xlabel('L1 Cache Size (KB)'); ylabel('L1 Hit Rate');
+            h = findobj(gca,'Type','line'); xs=get(h,'Xdata');
+            
+            % in case more than one data set on plot
+            min_xs = inf; max_xs = 0;
+            if (iscell(xs))
+                for ndx = 1:size(xs,1)
+                    min_xs = min(min(xs{ndx}), min_xs);
+                    max_xs = max(max(xs{ndx}), max_xs);
+                end
+            else min_xs = min(xs); max_xs = max(xs); end
+            
+            yticks = strread(num2str(get(gca,'YTick')),'%s');
+            for sidx = 1:length(yticks); yticks{sidx} = [yticks{sidx} '%']; end
+            set(gca,'YTickLabel', yticks); 
+            
+            a = pow2s >= min_xs; b = pow2s <= max_xs; xticks = pow2s(a&b);
+            set(gca,'XTick', xticks); try xlim([min_xs max_xs]); end
+            
+            eval(['legend(' strrep(leg_str,'_','\_') '''Location'', ''Best'')']);
             hold off;
         end
         
         if ANALYZE_L2
             L2_plot_str = ['figure;hold all;plot(', L2_plot_str(1:end-2), ')'];
             eval(L2_plot_str);
-            title([program ': L2 Cache Miss Rate vs Cache Size']); grid on; 
-            xlabel('L2 Cache Size (KB)'); ylabel('L2 Miss Rate (%)'); 
-            ys = ylim; ymax = ys(2);
+            title(['L2 Cache Hit Rate (' program  ')']); grid on; 
+            xlabel('L2 Cache Size (KB)'); ylabel('L2 Hit Rate');
             h = findobj(gca,'Type','line'); xs=get(h,'Xdata');
             
             % in case more than one data set on plot
@@ -231,10 +307,14 @@ function post_test
                 end
             else min_xs = min(xs); max_xs = max(xs); end
             
+            yticks = strread(num2str(get(gca,'YTick')),'%s');
+            for sidx = 1:length(yticks); yticks{sidx} = [yticks{sidx} '%']; end
+            set(gca,'YTickLabel', yticks); 
+            
             a = pow2s >= min_xs; b = pow2s <= max_xs; xticks = pow2s(a&b);
-            plot([SIZE_1024KB,SIZE_1024KB], [0,ymax], 'k--'); ylim([0,ymax]);
             set(gca,'XTick', xticks); try xlim([min_xs max_xs]); end
-            eval(['legend(' leg_str '''1024KB'')'])
+            
+            eval(['legend(' strrep(leg_str,'_','\_') '''Location'', ''Best'')']);
             hold off;
         end
         
@@ -243,11 +323,8 @@ function post_test
     % Done w all benchmark programs
     
     if SAVE_FIGS
-        if ANALYZE_L1 && ANALYZE_L2
-            hgsave([8 7 6 5 4 3 2 1], 'analysis_figs');
-        else
-            hgsave([4 3 2 1], 'analysis_figs');
-        end
+        hgsave(findobj(0,'type','figure'), 'analysis_figs');
     end
+    
     cd(back);
 end

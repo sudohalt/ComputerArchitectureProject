@@ -1,0 +1,39 @@
+Test_Case, DL1_cache_size, DL1_nsets, DL1_bsize, DL1_alloc, DL2_cache_size, DL2_nsets, DL2_bsize, DL2_alloc,LRU IPC,LRU DL1_hit_rate (%),LRU DL2_hit_rate (%)
+1,16,256,32,2,128,256,32,16,98.7,95.51,1.2804
+2,16,128,64,2,256,256,64,16,98.15,99.61,1.3065
+3,16,64,128,2,512,256,128,16,96.96,99.98,1.294
+4,16,32,256,2,1024,256,256,16,94.97,99.99,1.2654
+5,16,16,512,2,2048,256,512,16,89.36,100,1.1937
+Test_Case, DL1_cache_size, DL1_nsets, DL1_bsize, DL1_alloc, DL2_cache_size, DL2_nsets, DL2_bsize, DL2_alloc,DIP IPC,DIP DL1_hit_rate (%),DIP DL2_hit_rate (%)
+1,16,256,32,2,128,256,32,16,96.6,87.74,0.9555
+2,16,128,64,2,256,256,64,16,95.73,99.51,1.0086
+3,16,64,128,2,512,256,128,16,94.35,99.98,1.0103
+4,16,32,256,2,1024,256,256,16,92.16,100,1.0065
+Test_Case, DL1_cache_size, DL1_nsets, DL1_bsize, DL1_alloc, DL2_cache_size, DL2_nsets, DL2_bsize, DL2_alloc,LRFU IPC,LRFU DL1_hit_rate (%),LRFU DL2_hit_rate (%)
+1,16,256,32,2,128,256,32,16,95.33,94.77,1.3309
+2,16,128,64,2,256,256,64,16,93.91,99.8,1.3663
+3,16,64,128,2,512,256,128,16,91.93,99.99,1.3375
+4,16,32,256,2,1024,256,256,16,89.14,100,1.2959
+5,16,16,512,2,2048,256,512,16,84.44,100,1.2265
+Test_Case, DL1_cache_size, DL1_nsets, DL1_bsize, DL1_alloc, DL2_cache_size, DL2_nsets, DL2_bsize, DL2_alloc,LIP_LRU IPC,LIP_LRU DL1_hit_rate (%),LIP_LRU DL2_hit_rate (%)
+1,16,256,32,2,128,256,32,16,96.53,89.77,1.3148
+2,16,128,64,2,256,256,64,16,95.65,99.56,1.3983
+3,16,64,128,2,512,256,128,16,94.24,99.98,1.3823
+4,16,32,256,2,1024,256,256,16,92.02,100,1.3472
+Test_Case, DL1_cache_size, DL1_nsets, DL1_bsize, DL1_alloc, DL2_cache_size, DL2_nsets, DL2_bsize, DL2_alloc,LIP_FIFO IPC,LIP_FIFO DL1_hit_rate (%),LIP_FIFO DL2_hit_rate (%)
+1,16,256,32,2,128,256,32,16,96.53,88.05,1.3058
+2,16,128,64,2,256,256,64,16,95.65,99.43,1.3965
+3,16,64,128,2,512,256,128,16,94.24,99.98,1.3822
+4,16,32,256,2,1024,256,256,16,92.02,100,1.3472
+Test_Case, DL1_cache_size, DL1_nsets, DL1_bsize, DL1_alloc, DL2_cache_size, DL2_nsets, DL2_bsize, DL2_alloc,LIP_RAND IPC,LIP_RAND DL1_hit_rate (%),LIP_RAND DL2_hit_rate (%)
+1,16,256,32,2,128,256,32,16,96.53,90.19,1.3251
+2,16,128,64,2,256,256,64,16,95.65,99.43,1.3963
+3,16,64,128,2,512,256,128,16,94.24,99.98,1.3823
+4,16,32,256,2,1024,256,256,16,92.02,100,1.3472
+Test_Case, DL1_cache_size, DL1_nsets, DL1_bsize, DL1_alloc, DL2_cache_size, DL2_nsets, DL2_bsize, DL2_alloc,LRU_RAND IPC,LRU_RAND DL1_hit_rate (%),LRU_RAND DL2_hit_rate (%)
+1,16,256,32,2,128,256,32,16,96.53,89.33,1.3118
+Test_Case, DL1_cache_size, DL1_nsets, DL1_bsize, DL1_alloc, DL2_cache_size, DL2_nsets, DL2_bsize, DL2_alloc,RAND_FIFO IPC,RAND_FIFO DL1_hit_rate (%),RAND_FIFO DL2_hit_rate (%)
+1,16,256,32,2,128,256,32,16,96.53,88.82,1.3127
+2,16,128,64,2,256,256,64,16,95.65,99.41,1.3961
+3,16,64,128,2,512,256,128,16,94.24,99.97,1.3821
+4,16,32,256,2,1024,256,256,16,92.02,100,1.3471

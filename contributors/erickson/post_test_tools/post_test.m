@@ -5,16 +5,28 @@ function post_test
     back = pwd;
     cd(directoryname);
     
+    delete analysis.anagram.csv analysis.gcc.csv analysis.go.csv analysis.gzip.csv
+    
     % Analyze all benchmark programs
     programs = ['anagram'; ...
                 'gcc    '; ...
                 'go     '; ...
                 'gzip   '];
     
-    ANALYZE_IPC      = true;
-    ANALYZE_L1       = false;
-    ANALYZE_L2       = true;
-    SAVE_FIGS        = true;
+    ANALYZE_IPC  = true;
+    ANALYZE_L1   = false;
+    ANALYZE_L2   = true;
+    
+    ANALYZE_LRU  = true;
+    ANALYZE_FIFO = true;
+    ANALYZE_RAND = true;
+    ANALYZE_LIP  = false;
+    ANALYZE_BIP  = true;
+    ANALYZE_DIP  = false;
+    ANALYZE_LRFU = true;
+    ANALYZE_GARP = true;   
+    
+    SAVE_FIGS    = true;
 
     SCALE_TO_MB      = 2^-20;   % 1/1,048,576 bytes
     SCALE_TO_KB      = 2^-10;   % 1/1,024 bytes
@@ -175,32 +187,32 @@ function post_test
                            cache_size_l1 nsets_l1 bsize_l1 alloc_l1 ... % L1 cache size
                            cache_size_l2 nsets_l2 bsize_l2 alloc_l2 ... % L2 cache size
                            hit_rate_l1 hit_rate_l2 sim_ipc];            % Performance
-
-            if strcmp(repl_l2,'l')
+                       
+            if     ( strcmp(repl_l2,'l') && ANALYZE_LRU )
                 Data_LRU(T_idx,:) = Data_Common;
-            elseif strcmp(repl_l2,'f')
+            elseif ( strcmp(repl_l2,'f') && ANALYZE_FIFO )
                 Data_FIFO(T_idx,:) = Data_Common;
-            elseif strcmp(repl_l2,'r')
+            elseif ( strcmp(repl_l2,'r') && ANALYZE_RAND )
                 Data_RAND(T_idx,:) = Data_Common;
-                
-            elseif strcmp(repl_l2,'i')
+            elseif ( strcmp(repl_l2,'i') && ANALYZE_LIP )
                 Data_LIP(T_idx,:) = Data_Common;
-            elseif strcmp(repl_l2,'d')
+            elseif ( strcmp(repl_l2,'b') && ANALYZE_BIP )
+                Data_BIP(T_idx,:) = Data_Common;
+            elseif ( strcmp(repl_l2,'d') && ANALYZE_DIP )
                 Data_DIP(T_idx,:) = Data_Common;
-            elseif strcmp(repl_l2,'a')
+            elseif ( strcmp(repl_l2,'a') && ANALYZE_LRFU )
                 Data_LRFU(T_idx,:) = Data_Common;
-            
-            elseif strcmp(repl_l2,'s')
+            elseif ( strcmp(repl_l2,'s') && ANALYZE_GARP )
                 Data_LIP_LRU(T_idx,:) = Data_Common;
-            elseif strcmp(repl_l2,'t')
+            elseif ( strcmp(repl_l2,'t') && ANALYZE_GARP )
                 Data_LIP_FIFO(T_idx,:) = Data_Common;
-            elseif strcmp(repl_l2,'u')
+            elseif ( strcmp(repl_l2,'u') && ANALYZE_GARP )
                 Data_LIP_RAND(T_idx,:) = Data_Common;
-            elseif strcmp(repl_l2,'v')
+            elseif ( strcmp(repl_l2,'v') && ANALYZE_GARP )
                 Data_LRU_RAND(T_idx,:) = Data_Common;
-            elseif strcmp(repl_l2,'w')
+            elseif ( strcmp(repl_l2,'w') && ANALYZE_GARP )
                 Data_LRU_FIFO(T_idx,:) = Data_Common;
-            elseif strcmp(repl_l2,'x')
+            elseif ( strcmp(repl_l2,'x') && ANALYZE_GARP )
                 Data_RAND_FIFO(T_idx,:) = Data_Common;
             end
         end
@@ -214,7 +226,7 @@ function post_test
         csv_out = ['analysis.' program '.csv'];
         csv_hdr = 'Test_Case, DL1_cache_size, DL1_nsets, DL1_bsize, DL1_alloc, DL2_cache_size, DL2_nsets, DL2_bsize, DL2_alloc';
         
-        repl_pols = {'LRU'; 'FIFO'; 'RAND'; 'LIP'; 'DIP'; 'LRFU'; ...
+        repl_pols = {'LRU'; 'FIFO'; 'RAND'; 'LIP'; 'BIP'; 'DIP'; 'LRFU'; ...
                      'LIP_LRU';  'LIP_FIFO'; 'LIP_RAND'; ...
                      'LRU_RAND'; 'LRU_FIFO'; 'RAND_FIFO'};
         for pol_idx = 1:size(repl_pols,1)
@@ -241,78 +253,89 @@ function post_test
         pow2s = [16 32 64 128 256 512 1024 2048 4096];
         
         if ANALYZE_IPC
-            IPC_plot_str = ['figure;hold all;plot(', IPC_plot_str(1:end-2), ')'];
+            IPC_plot_str = ['figure; semilogx(', IPC_plot_str(1:end-2), '); hold all;'];
             eval(IPC_plot_str);
             title(['IPC (' program ')']); grid on; 
             xlabel('L2 Cache Size (KB)'); ylabel('Instructions Per Cycle (IPC)');
-            h = findobj(gca,'Type','line'); xs=get(h,'Xdata');
             
-            % in case more than one data set on plot
+            h = findobj(gca,'Type','line'); xs=get(h,'Xdata');
             min_xs = inf; max_xs = 0;
-            if (iscell(xs))
+            if (iscell(xs)) % in case more than one data set on plot
                 for ndx = 1:size(xs,1)
                     min_xs = min(min(xs{ndx}), min_xs);
                     max_xs = max(max(xs{ndx}), max_xs);
                 end
-            else min_xs = min(xs); max_xs = max(xs); end
-            
+            else
+                min_xs = min(xs); max_xs = max(xs); 
+            end
             a = pow2s >= min_xs; b = pow2s <= max_xs; xticks = pow2s(a&b);
             set(gca,'XTick', xticks); try xlim([min_xs max_xs]); end
             
-            %eval(['legend(' leg_str '''Location'', ''Best'')']);
             eval(['legend(' strrep(leg_str,'_','\_') '''Location'', ''Best'')']);
             hold off;
         end
         
         if ANALYZE_L1
-            L1_plot_str = ['figure;hold all;plot(', L1_plot_str(1:end-2), ')'];
+            L1_plot_str = ['figure; semilogx(', L1_plot_str(1:end-2), '); hold all; '];
             eval(L1_plot_str);
             title(['L1 Cache Hit Rate (' program  ')']); grid on; 
             xlabel('L1 Cache Size (KB)'); ylabel('L1 Hit Rate');
-            h = findobj(gca,'Type','line'); xs=get(h,'Xdata');
             
-            % in case more than one data set on plot
-            min_xs = inf; max_xs = 0;
-            if (iscell(xs))
+            h = findobj(gca,'Type','line'); 
+            xs=get(h,'Xdata'); ys=get(h,'Ydata');
+            min_xs = inf; max_xs = 0; min_ys = inf;  max_ys = 100;
+            if (iscell(xs))  % in case more than one data set on plot
                 for ndx = 1:size(xs,1)
                     min_xs = min(min(xs{ndx}), min_xs);
                     max_xs = max(max(xs{ndx}), max_xs);
+                    min_ys = min(min(ys{ndx}), min_ys);
                 end
-            else min_xs = min(xs); max_xs = max(xs); end
+            else
+                min_xs = min(xs); max_xs = max(xs);
+                min_ys = min(ys);
+            end
+            a = pow2s >= min_xs; b = pow2s <= max_xs; xticks = pow2s(a&b);
+            set(gca,'XTick', xticks); 
+            try xlim([min_xs max_xs]); end
+            min_ys = floor(min_ys / 5)*5; % floor ys to increments of 5
+            try ylim([min_ys max_ys]); end
             
             yticks = strread(num2str(get(gca,'YTick')),'%s');
             for sidx = 1:length(yticks); yticks{sidx} = [yticks{sidx} '%']; end
-            set(gca,'YTickLabel', yticks); 
-            
-            a = pow2s >= min_xs; b = pow2s <= max_xs; xticks = pow2s(a&b);
-            set(gca,'XTick', xticks); try xlim([min_xs max_xs]); end
+            set(gca,'YTickLabel', yticks);
             
             eval(['legend(' strrep(leg_str,'_','\_') '''Location'', ''Best'')']);
             hold off;
         end
         
         if ANALYZE_L2
-            L2_plot_str = ['figure;hold all;plot(', L2_plot_str(1:end-2), ')'];
+            L2_plot_str = ['figure; semilogx(', L2_plot_str(1:end-2), '); hold all;'];
             eval(L2_plot_str);
             title(['L2 Cache Hit Rate (' program  ')']); grid on; 
             xlabel('L2 Cache Size (KB)'); ylabel('L2 Hit Rate');
-            h = findobj(gca,'Type','line'); xs=get(h,'Xdata');
             
-            % in case more than one data set on plot
-            min_xs = inf; max_xs = 0;
-            if (iscell(xs))
+            h = findobj(gca,'Type','line'); 
+            xs=get(h,'Xdata'); ys=get(h,'Ydata');
+            min_xs = inf; max_xs = 0; min_ys = inf;  max_ys = 100;
+            if (iscell(xs))  % in case more than one data set on plot
                 for ndx = 1:size(xs,1)
                     min_xs = min(min(xs{ndx}), min_xs);
                     max_xs = max(max(xs{ndx}), max_xs);
+                    min_ys = min(min(ys{ndx}), min_ys);
                 end
-            else min_xs = min(xs); max_xs = max(xs); end
+            else
+                min_xs = min(xs); max_xs = max(xs);
+                min_ys = min(ys);
+            end
+            a = pow2s >= min_xs; b = pow2s <= max_xs; xticks = pow2s(a&b);
+            set(gca,'XTick', xticks); 
+            try xlim([min_xs max_xs]); end
+            min_ys = floor(min_ys / 5)*5; % floor ys to increments of 5
+            try ylim([min_ys max_ys]); end
             
             yticks = strread(num2str(get(gca,'YTick')),'%s');
             for sidx = 1:length(yticks); yticks{sidx} = [yticks{sidx} '%']; end
-            set(gca,'YTickLabel', yticks); 
-            
-            a = pow2s >= min_xs; b = pow2s <= max_xs; xticks = pow2s(a&b);
-            set(gca,'XTick', xticks); try xlim([min_xs max_xs]); end
+            set(gca,'YTickLabel', yticks);
             
             eval(['legend(' strrep(leg_str,'_','\_') '''Location'', ''Best'')']);
             hold off;

@@ -4,11 +4,11 @@ Test_Case, DL1_cache_size, DL1_nsets, DL1_bsize, DL1_alloc, DL2_cache_size, DL2_
 3,16,64,128,2,512,256,128,16,96.96,99.98,1.294
 4,16,32,256,2,1024,256,256,16,94.97,99.99,1.2654
 5,16,16,512,2,2048,256,512,16,89.36,100,1.1937
-Test_Case, DL1_cache_size, DL1_nsets, DL1_bsize, DL1_alloc, DL2_cache_size, DL2_nsets, DL2_bsize, DL2_alloc,DIP IPC,DIP DL1_hit_rate (%),DIP DL2_hit_rate (%)
-1,16,256,32,2,128,256,32,16,96.6,87.74,0.9555
-2,16,128,64,2,256,256,64,16,95.73,99.51,1.0086
-3,16,64,128,2,512,256,128,16,94.35,99.98,1.0103
-4,16,32,256,2,1024,256,256,16,92.16,100,1.0065
+Test_Case, DL1_cache_size, DL1_nsets, DL1_bsize, DL1_alloc, DL2_cache_size, DL2_nsets, DL2_bsize, DL2_alloc,BIP IPC,BIP DL1_hit_rate (%),BIP DL2_hit_rate (%)
+1,16,256,32,2,128,256,32,16,96.53,90.51,1.3288
+2,16,128,64,2,256,256,64,16,95.65,99.38,1.3956
+3,16,64,128,2,512,256,128,16,94.24,99.96,1.3816
+4,16,32,256,2,1024,256,256,16,92.02,99.98,1.3464
 Test_Case, DL1_cache_size, DL1_nsets, DL1_bsize, DL1_alloc, DL2_cache_size, DL2_nsets, DL2_bsize, DL2_alloc,LRFU IPC,LRFU DL1_hit_rate (%),LRFU DL2_hit_rate (%)
 1,16,256,32,2,128,256,32,16,95.33,94.77,1.3309
 2,16,128,64,2,256,256,64,16,93.91,99.8,1.3663
@@ -20,8 +20,3 @@ Test_Case, DL1_cache_size, DL1_nsets, DL1_bsize, DL1_alloc, DL2_cache_size, DL2_
 2,16,128,64,2,256,256,64,16,95.65,99.43,1.3963
 3,16,64,128,2,512,256,128,16,94.24,99.98,1.3823
 4,16,32,256,2,1024,256,256,16,92.02,100,1.3472
-Test_Case, DL1_cache_size, DL1_nsets, DL1_bsize, DL1_alloc, DL2_cache_size, DL2_nsets, DL2_bsize, DL2_alloc,RAND_FIFO IPC,RAND_FIFO DL1_hit_rate (%),RAND_FIFO DL2_hit_rate (%)
-0,0,0,0,0,0,0,0,0,0,0,0
-0,0,0,0,0,0,0,0,0,0,0,0
-0,0,0,0,0,0,0,0,0,0,0,0
-4,16,32,256,2,1024,256,256,16,92.02,100,1.3471

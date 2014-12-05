@@ -1,0 +1,52 @@
+nohup ../../sim-outorder -max:inst 1000000000 -cache:dl1 dl1:256:32:2:p -cache:dl2 ul2:256:32:16:p -redir:sim go.simout.T1.GARP_PLRU_FIFO -redir:prog go.progout.T1.GARP_PLRU_FIFO ../go/go 50 21 ../go/2stone9.in &
+nohup ../../sim-outorder -max:inst 1000000000 -cache:dl1 dl1:256:32:2:p -cache:dl2 ul2:256:32:16:p -redir:sim anagram.simout.T1.GARP_PLRU_FIFO -redir:prog anagram.progout.T1.GARP_PLRU_FIFO ../anagram/anagram ../anagram/words < ../anagram/anagram.in &
+nohup ../../sim-outorder -max:inst 1000000000 -cache:dl1 dl1:256:32:2:p -cache:dl2 ul2:256:32:16:p -redir:sim gzip.simout.T1.GARP_PLRU_FIFO -redir:prog gzip.progout.T1.GARP_PLRU_FIFO ../gzip/gzip ../gzip/input.graphic &
+nohup ../../sim-outorder -max:inst 1000000000 -cache:dl1 dl1:256:32:2:p -cache:dl2 ul2:256:32:16:p -redir:sim gcc.simout.T1.GARP_PLRU_FIFO -redir:prog gcc.progout.T1.GARP_PLRU_FIFO ../gcc/gcc -O ../gcc/166.i &
+
+nohup ../../sim-outorder -max:inst 1000000000 -cache:dl1 dl1:128:64:2:p -cache:dl2 ul2:256:64:16:p -redir:sim go.simout.T2.GARP_PLRU_FIFO -redir:prog go.progout.T2.GARP_PLRU_FIFO ../go/go 50 21 ../go/2stone9.in &
+nohup ../../sim-outorder -max:inst 1000000000 -cache:dl1 dl1:128:64:2:p -cache:dl2 ul2:256:64:16:p -redir:sim anagram.simout.T2.GARP_PLRU_FIFO -redir:prog anagram.progout.T2.GARP_PLRU_FIFO ../anagram/anagram ../anagram/words < ../anagram/anagram.in &
+nohup ../../sim-outorder -max:inst 1000000000 -cache:dl1 dl1:128:64:2:p -cache:dl2 ul2:256:64:16:p -redir:sim gzip.simout.T2.GARP_PLRU_FIFO -redir:prog gzip.progout.T2.GARP_PLRU_FIFO ../gzip/gzip ../gzip/input.graphic &
+nohup ../../sim-outorder -max:inst 1000000000 -cache:dl1 dl1:128:64:2:p -cache:dl2 ul2:256:64:16:p -redir:sim gcc.simout.T2.GARP_PLRU_FIFO -redir:prog gcc.progout.T2.GARP_PLRU_FIFO ../gcc/gcc -O ../gcc/166.i &
+
+nohup ../../sim-outorder -max:inst 1000000000 -cache:dl1 dl1:64:128:2:p -cache:dl2 ul2:256:128:16:p -redir:sim go.simout.T3.GARP_PLRU_FIFO -redir:prog go.progout.T3.GARP_PLRU_FIFO ../go/go 50 21 ../go/2stone9.in &
+nohup ../../sim-outorder -max:inst 1000000000 -cache:dl1 dl1:64:128:2:p -cache:dl2 ul2:256:128:16:p -redir:sim anagram.simout.T3.GARP_PLRU_FIFO -redir:prog anagram.progout.T3.GARP_PLRU_FIFO ../anagram/anagram ../anagram/words < ../anagram/anagram.in &
+nohup ../../sim-outorder -max:inst 1000000000 -cache:dl1 dl1:64:128:2:p -cache:dl2 ul2:256:128:16:p -redir:sim gzip.simout.T3.GARP_PLRU_FIFO -redir:prog gzip.progout.T3.GARP_PLRU_FIFO ../gzip/gzip ../gzip/input.graphic &
+nohup ../../sim-outorder -max:inst 1000000000 -cache:dl1 dl1:64:128:2:p -cache:dl2 ul2:256:128:16:p -redir:sim gcc.simout.T3.GARP_PLRU_FIFO -redir:prog gcc.progout.T3.GARP_PLRU_FIFO ../gcc/gcc -O ../gcc/166.i &
+
+nohup ../../sim-outorder -max:inst 1000000000 -cache:dl1 dl1:32:256:2:p -cache:dl2 ul2:256:256:16:p -redir:sim go.simout.T4.GARP_PLRU_FIFO -redir:prog go.progout.T4.GARP_PLRU_FIFO ../go/go 50 21 ../go/2stone9.in &
+nohup ../../sim-outorder -max:inst 1000000000 -cache:dl1 dl1:32:256:2:p -cache:dl2 ul2:256:256:16:p -redir:sim anagram.simout.T4.GARP_PLRU_FIFO -redir:prog anagram.progout.T4.GARP_PLRU_FIFO ../anagram/anagram ../anagram/words < ../anagram/anagram.in &
+nohup ../../sim-outorder -max:inst 1000000000 -cache:dl1 dl1:32:256:2:p -cache:dl2 ul2:256:256:16:p -redir:sim gzip.simout.T4.GARP_PLRU_FIFO -redir:prog gzip.progout.T4.GARP_PLRU_FIFO ../gzip/gzip ../gzip/input.graphic &
+nohup ../../sim-outorder -max:inst 1000000000 -cache:dl1 dl1:32:256:2:p -cache:dl2 ul2:256:256:16:p -redir:sim gcc.simout.T4.GARP_PLRU_FIFO -redir:prog gcc.progout.T4.GARP_PLRU_FIFO ../gcc/gcc -O ../gcc/166.i &
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

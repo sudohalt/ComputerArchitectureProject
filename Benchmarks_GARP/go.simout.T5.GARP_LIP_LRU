@@ -6,9 +6,9 @@ entity, or for any commercial purpose, without the prior written permission
 of SimpleScalar, LLC (info@simplescalar.com).
 
 warning: section `.comment' ignored...
-sim: command line: ../../simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:16:512:2:l -cache:dl2 ul2:256:512:16:t -redir:sim go.simout.T5.GARP_LIP_FIFO -redir:prog go.progout.T5.GARP_LIP_FIFO ../apps/go/go 50 21 ../apps/go/5stone21.in 
+sim: command line: ../../simplesim-3.0/sim-outorder -max:inst 1000000000 -cache:dl1 dl1:16:512:2:l -cache:dl2 ul2:256:512:16:s -redir:sim go.simout.T5.GARP_LIP_LRU -redir:prog go.progout.T5.GARP_LIP_LRU ../apps/go/go 50 21 ../apps/go/5stone21.in 
 
-sim: simulation started @ Thu Dec  4 18:06:12 2014, options follow:
+sim: simulation started @ Thu Dec  4 22:40:29 2014, options follow:
 
 sim-outorder: This simulator implements a very detailed out-of-order issue
 superscalar processor with a two-level memory system and speculative
@@ -24,8 +24,8 @@ latency of all pipeline operations.
 -seed                       1 # random number generator seed (0 for timer seed)
 # -q                    false # initialize and terminate immediately
 # -chkpt               <null> # restore EIO trace execution from <fname>
-# -redir:sim     go.simout.T5.GARP_LIP_FIFO # redirect simulator output to file (non-interactive only)
-# -redir:prog    go.progout.T5.GARP_LIP_FIFO # redirect simulated program output to file
+# -redir:sim     go.simout.T5.GARP_LIP_LRU # redirect simulator output to file (non-interactive only)
+# -redir:prog    go.progout.T5.GARP_LIP_LRU # redirect simulated program output to file
 -nice                       0 # simulator scheduling priority
 -max:inst          1000000000 # maximum number of inst's to execute
 -fastfwd                    0 # number of insts skipped before timing starts
@@ -49,7 +49,7 @@ latency of all pipeline operations.
 -lsq:size                   8 # load/store queue (LSQ) size
 -cache:dl1       dl1:16:512:2:l # l1 data cache config, i.e., {<config>|none}
 -cache:dl1lat               1 # l1 data cache hit latency (in cycles)
--cache:dl2       ul2:256:512:16:t # l2 data cache config, i.e., {<config>|none}
+-cache:dl2       ul2:256:512:16:s # l2 data cache config, i.e., {<config>|none}
 -cache:dl2lat               6 # l2 data cache hit latency (in cycles)
 -cache:il1       il1:512:32:1:l # l1 inst cache config, i.e., {<config>|dl1|dl2|none}
 -cache:il1lat               1 # l1 instruction cache hit latency (in cycles)
@@ -137,37 +137,37 @@ sim_num_refs              365032631 # total number of loads and stores committed
 sim_num_loads             284642029 # total number of loads committed
 sim_num_stores         80390602.0000 # total number of stores committed
 sim_num_branches          134817453 # total number of branches committed
-sim_elapsed_time               3643 # total simulation time in seconds
-sim_inst_rate           274499.0393 # simulation speed (in insts/sec)
+sim_elapsed_time               3651 # total simulation time in seconds
+sim_inst_rate           273897.5623 # simulation speed (in insts/sec)
 sim_total_insn           1223257930 # total number of instructions executed
 sim_total_refs            446874194 # total number of loads and stores executed
 sim_total_loads           353952683 # total number of loads executed
 sim_total_stores       92921511.0000 # total number of stores executed
 sim_total_branches        161114191 # total number of branches executed
-sim_cycle                 782893022 # total simulation time in cycles
+sim_cycle                 782892158 # total simulation time in cycles
 sim_IPC                      1.2773 # instructions per cycle
 sim_CPI                      0.7829 # cycles per instruction
 sim_exec_BW                  1.5625 # total instructions (mis-spec + committed) per cycle
 sim_IPB                      7.4174 # instruction per branch
-IFQ_count                2234741579 # cumulative IFQ occupancy
-IFQ_fcount                515559735 # cumulative IFQ full count
+IFQ_count                2234738655 # cumulative IFQ occupancy
+IFQ_fcount                515559009 # cumulative IFQ full count
 ifq_occupancy                2.8545 # avg IFQ occupancy (insn's)
 ifq_rate                     1.5625 # avg IFQ dispatch rate (insn/cycle)
 ifq_latency                  1.8269 # avg IFQ occupant latency (cycle's)
 ifq_full                     0.6585 # fraction of time (cycle's) IFQ was full
-RUU_count                8451645517 # cumulative RUU occupancy
-RUU_fcount                309708650 # cumulative RUU full count
+RUU_count                8451633745 # cumulative RUU occupancy
+RUU_fcount                309708151 # cumulative RUU full count
 ruu_occupancy               10.7954 # avg RUU occupancy (insn's)
 ruu_rate                     1.5625 # avg RUU dispatch rate (insn/cycle)
 ruu_latency                  6.9091 # avg RUU occupant latency (cycle's)
 ruu_full                     0.3956 # fraction of time (cycle's) RUU was full
-LSQ_count                3171204422 # cumulative LSQ occupancy
-LSQ_fcount                 96310521 # cumulative LSQ full count
+LSQ_count                3171200110 # cumulative LSQ occupancy
+LSQ_fcount                 96310168 # cumulative LSQ full count
 lsq_occupancy                4.0506 # avg LSQ occupancy (insn's)
 lsq_rate                     1.5625 # avg LSQ dispatch rate (insn/cycle)
 lsq_latency                  2.5924 # avg LSQ occupant latency (cycle's)
 lsq_full                     0.1230 # fraction of time (cycle's) LSQ was full
-sim_slip                11517672070 # total number of slip cycles
+sim_slip                11517655986 # total number of slip cycles
 avg_sim_slip                11.5177 # the average slip between issue and retirement
 bpred_bimod.lookups       172047428 # total number of bpred lookups
 bpred_bimod.updates       134817452 # total number of updates
@@ -197,29 +197,29 @@ il1.miss_rate                0.0162 # miss rate (i.e., misses/ref)
 il1.repl_rate                0.0162 # replacement rate (i.e., repls/ref)
 il1.wb_rate                  0.0000 # writeback rate (i.e., wrbks/ref)
 il1.inv_rate                 0.0000 # invalidation rate (i.e., invs/ref)
-dl1.accesses              393344363 # total number of accesses
-dl1.hits                  342094857 # total number of hits
-dl1.misses                 51249506 # total number of misses
-dl1.replacements           51249474 # total number of replacements
+dl1.accesses              393344364 # total number of accesses
+dl1.hits                  342094859 # total number of hits
+dl1.misses                 51249505 # total number of misses
+dl1.replacements           51249473 # total number of replacements
 dl1.writebacks             16069664 # total number of writebacks
 dl1.invalidations                 0 # total number of invalidations
 dl1.miss_rate                0.1303 # miss rate (i.e., misses/ref)
 dl1.repl_rate                0.1303 # replacement rate (i.e., repls/ref)
 dl1.wb_rate                  0.0409 # writeback rate (i.e., wrbks/ref)
 dl1.inv_rate                 0.0000 # invalidation rate (i.e., invs/ref)
-ul2.accesses               88710486 # total number of accesses
-ul2.hits                   88709335 # total number of hits
-ul2.misses                     1151 # total number of misses
-ul2.replacements                 46 # total number of replacements
-ul2.writebacks                    5 # total number of writebacks
+ul2.accesses               88710485 # total number of accesses
+ul2.hits                   88709345 # total number of hits
+ul2.misses                     1140 # total number of misses
+ul2.replacements                 34 # total number of replacements
+ul2.writebacks                    3 # total number of writebacks
 ul2.invalidations                 0 # total number of invalidations
 ul2.miss_rate                0.0000 # miss rate (i.e., misses/ref)
 ul2.repl_rate                0.0000 # replacement rate (i.e., repls/ref)
 ul2.wb_rate                  0.0000 # writeback rate (i.e., wrbks/ref)
 ul2.inv_rate                 0.0000 # invalidation rate (i.e., invs/ref)
 ul2.Policy_A_Misses             345 # total number policy A of misses
-ul2.Policy_B_Misses             292 # total number policy B of misses
-ul2.Policy_A_Time              1151 # total number of times Policy A was selected
+ul2.Policy_B_Misses             290 # total number policy B of misses
+ul2.Policy_A_Time              1140 # total number of times Policy A was selected
 ul2.Policy_B_Time                 0 # total number of times Policy B was selected
 ul2.Policy_A_Percentage       1.0000 # percentage of time policy A was selected (i.e., policyA/misses)
 ul2.Policy_B_Percentage       0.0000 # percentage of time policy B was selected (i.e., policyB/misses)

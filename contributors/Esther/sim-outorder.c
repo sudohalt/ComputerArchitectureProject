@@ -1125,7 +1125,7 @@ sim_check_options(struct opt_odb_t *odb,        /* options database */
 	fatal("bad TLB parms: <name>:<nsets>:<page_size>:<assoc>:<repl>:<width_BIPCTR>:<width_PSEL>");
       dtlb = cache_create(name, nsets, bsize, /* balloc */FALSE,
 			  /* usize */sizeof(md_addr_t), assoc,
-			  cache_char2policy(c), dtlb_access_fn,width_BIPCTR, width_PSEL, /* hit latency */1);
+			  cache_char2policy(c), dtlb_access_fn,/* hit latency */1, width_BIPCTR, width_PSEL);
     }
 
   if (cache_dl1_lat < 1)

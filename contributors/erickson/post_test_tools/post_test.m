@@ -22,8 +22,9 @@ function post_test
     ANALYZE_RAND = true;
     ANALYZE_LIP  = false;
     ANALYZE_BIP  = true;
-    ANALYZE_DIP  = false;
+    ANALYZE_DIP  = true;
     ANALYZE_LRFU = true;
+    ANALYZE_PLRU = true;
     ANALYZE_GARP = true;   
     
     SAVE_FIGS    = true;
@@ -202,6 +203,8 @@ function post_test
                 Data_DIP(T_idx,:) = Data_Common;
             elseif ( strcmp(repl_l2,'a') && ANALYZE_LRFU )
                 Data_LRFU(T_idx,:) = Data_Common;
+            elseif ( strcmp(repl_l2,'p') && ANALYZE_PLRU )
+                Data_PLRU(T_idx,:) = Data_Common;
             elseif ( strcmp(repl_l2,'s') && ANALYZE_GARP )
                 Data_LIP_LRU(T_idx,:) = Data_Common;
             elseif ( strcmp(repl_l2,'t') && ANALYZE_GARP )
@@ -226,12 +229,11 @@ function post_test
         csv_out = ['analysis.' program '.csv'];
         csv_hdr = 'Test_Case, DL1_cache_size, DL1_nsets, DL1_bsize, DL1_alloc, DL2_cache_size, DL2_nsets, DL2_bsize, DL2_alloc';
         
-        repl_pols = {'LRU'; 'FIFO'; 'RAND'; 'LIP'; 'BIP'; 'DIP'; 'LRFU'; ...
+        repl_pols = {'LRU'; 'FIFO'; 'RAND'; 'LIP'; 'BIP'; 'DIP'; 'LRFU'; 'PLRU'; ...
                      'LIP_LRU';  'LIP_FIFO'; 'LIP_RAND'; ...
                      'LRU_RAND'; 'LRU_FIFO'; 'RAND_FIFO'};
         for pol_idx = 1:size(repl_pols,1)
             
-            %pol = ['Data_' repl_pols(pol_idx,:)]; pol(pol==' ') = '';
             pol = ['Data_' repl_pols{pol_idx}];
             if exist(pol,'var')
                 IPC_plot_str = [IPC_plot_str pol '(:,6), ' pol '(:,12),''.-'', '];
@@ -242,7 +244,8 @@ function post_test
 
                 % write data to csv
                 fid = fopen(csv_out,'a');
-                fprintf(fid, '%s\n', [csv_hdr ',', pol(6:end),' IPC,', pol(6:end),' DL1_hit_rate (%),', pol(6:end),' DL2_hit_rate (%)']);
+                %fprintf(fid, '%s\n', [csv_hdr ',', pol(6:end),' IPC,', pol(6:end),' DL1_hit_rate (%),', pol(6:end),' DL2_hit_rate (%)']);
+                fprintf(fid, '%s\n', [csv_hdr ',' pol(6:end) ' DL1_hit_rate (%),' pol(6:end) ' DL2_hit_rate (%),' pol(6:end) ' IPC' ]);
                 fclose(fid);
                 eval(['dlmwrite(csv_out,', pol, ',''-append'')']);
             end

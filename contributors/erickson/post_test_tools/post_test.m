@@ -18,10 +18,10 @@ function post_test
     ANALYZE_L2   = true;
     
     ANALYZE_LRU  = true;
-    ANALYZE_FIFO = true;
-    ANALYZE_RAND = true;
+    ANALYZE_FIFO = false;
+    ANALYZE_RAND = false;
     ANALYZE_LIP  = false;
-    ANALYZE_BIP  = true;
+    ANALYZE_BIP  = false;
     ANALYZE_DIP  = true;
     ANALYZE_LRFU = true;
     ANALYZE_PLRU = true;
@@ -244,7 +244,6 @@ function post_test
 
                 % write data to csv
                 fid = fopen(csv_out,'a');
-                %fprintf(fid, '%s\n', [csv_hdr ',', pol(6:end),' IPC,', pol(6:end),' DL1_hit_rate (%),', pol(6:end),' DL2_hit_rate (%)']);
                 fprintf(fid, '%s\n', [csv_hdr ',' pol(6:end) ' DL1_hit_rate (%),' pol(6:end) ' DL2_hit_rate (%),' pol(6:end) ' IPC' ]);
                 fclose(fid);
                 eval(['dlmwrite(csv_out,', pol, ',''-append'')']);

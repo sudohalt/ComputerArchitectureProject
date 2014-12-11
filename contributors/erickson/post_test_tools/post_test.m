@@ -22,10 +22,10 @@ function post_test
     ANALYZE_RAND = false;
     ANALYZE_LIP  = false;
     ANALYZE_BIP  = false;
-    ANALYZE_DIP  = true;
+    ANALYZE_DIP  = false;
     ANALYZE_LRFU = true;
     ANALYZE_PLRU = true;
-    ANALYZE_GARP = true;   
+    ANALYZE_GARP = false;   
     
     SAVE_FIGS    = true;
 
